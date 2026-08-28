@@ -49,13 +49,13 @@ class SyncCommandTests(TestCase):
 
 class RoleControllerTests(TestCase):
     def test_plug_role_registration(self):
-        agent = RoleDef(name="MeterAgent", description="x", permissions=("transaction__post",))
+        agent = RoleDef(name="CoreTestOnlyRole", description="x", permissions=("transaction__post",))
         RoleController.register_role(agent)
         try:
             self.assertIn(agent, RoleController.get_roles())
             RoleController.register_role(agent)  # idempotent
             self.assertEqual(RoleController.get_roles().count(agent), 1)
-            self.assertIs(RoleController.get_role_by_name("MeterAgent"), agent)
+            self.assertIs(RoleController.get_role_by_name("CoreTestOnlyRole"), agent)
         finally:
             RoleController.override_roles.remove(agent)
 
