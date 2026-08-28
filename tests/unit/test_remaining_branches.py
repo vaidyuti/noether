@@ -9,8 +9,8 @@ from noether.domains.config import (
 )
 from noether.domains.registry import DomainRegistry
 from noether.domains.services import instantiate_chart
-from noether.ledger.api.prices import UnitPriceSpec
 from noether.ledger.models import Account
+from noether.ledger.resources.price.spec import UnitPriceSpec
 from noether.ledger.tests.factories import LedgerFactory
 from tests.api.base import NoetherAPITestCase
 
@@ -62,4 +62,22 @@ class PriceFloatCoercionTests(NoetherAPITestCase):
 class TransactionFilterEdgeTests(NoetherAPITestCase):
     def test_invalid_occurred_before_filter_400(self):
         response = self.client.get(self.ledger_url("transactions/") + "?occurred_before=not-a-date")
+        self.assertEqual(response.status_code, 400)
+
+    def test_invalid_account_uuid_filter_400(self):
+        response = self.client.get(self.ledger_url("transactions/") + "?account=not-a-uuid")
+        self.assertEqual(response.status_code, 400)
+
+    def test_invalid_archived_boolean_filter_ignored(self):
+        # django-filter's BooleanFilter coerces unrecognized values to None,
+        # so an invalid `archived` value is ignored rather than rejected.
+        response = self.client.get(self.ledger_url("accounts/") + "?archived=maybe")
+        self.assertEqual(response.status_code, 200)
+
+    def test_invalid_parent_uuid_filter_400(self):
+        response = self.client.get(self.ledger_url("accounts/") + "?parent=nope")
+        self.assertEqual(response.status_code, 400)
+
+    def test_invalid_as_of_before_filter_400(self):
+        response = self.client.get(self.ledger_url("prices/") + "?as_of_before=not-a-date")
         self.assertEqual(response.status_code, 400)

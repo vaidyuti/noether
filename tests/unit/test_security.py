@@ -49,7 +49,9 @@ class SyncCommandTests(TestCase):
 
 class RoleControllerTests(TestCase):
     def test_plug_role_registration(self):
-        agent = RoleDef(name="CoreTestOnlyRole", description="x", permissions=("transaction__post",))
+        agent = RoleDef(
+            name="CoreTestOnlyRole", description="x", permissions=("transaction__post",)
+        )
         RoleController.register_role(agent)
         try:
             self.assertIn(agent, RoleController.get_roles())

@@ -1,47 +1,16 @@
-import datetime
-
-from pydantic import UUID4
 from rest_framework.exceptions import ValidationError
 
 from noether.api.viewsets.base import NoetherModelViewSet
 from noether.ledger.api.base import LedgerScopedMixin
-from noether.resources.base import NoetherResource
+from noether.ledger.resources.member.spec import (
+    MemberReadSpec,
+    MemberSpec,
+    MemberUpdateSpec,
+)
 from noether.security.models import LedgerUser
 from noether.security.models import Role as RoleModel
 from noether.security.permissions.base import LedgerPermissions
 from noether.users.models import User
-
-
-class MemberSpec(NoetherResource):
-    __model__ = LedgerUser
-    user: str
-    role: str
-
-    def perform_extra_deserialization(self, is_update, obj):
-        obj.role = self._role_row
-        obj.user = self._user_row
-
-
-class MemberUpdateSpec(NoetherResource):
-    __model__ = LedgerUser
-    role: str
-
-    def perform_extra_deserialization(self, is_update, obj):
-        obj.role = self._role_row
-
-
-class MemberReadSpec(NoetherResource):
-    __model__ = LedgerUser
-    id: UUID4 | None = None
-    user: str | None = None
-    role: str | None = None
-    created_date: datetime.datetime | None = None
-
-    @classmethod
-    def perform_extra_serialization(cls, mapping, obj):
-        super().perform_extra_serialization(mapping, obj)
-        mapping["user"] = obj.user.username
-        mapping["role"] = obj.role.name
 
 
 class LedgerUserViewSet(LedgerScopedMixin, NoetherModelViewSet):

@@ -1,54 +1,18 @@
-import datetime
-
-from pydantic import UUID4
-
 from noether.api.viewsets.base import NoetherModelViewSet
 from noether.domains.config import DomainConfigError
 from noether.domains.registry import DomainRegistry
 from noether.domains.services import instantiate_chart
 from noether.ledger.models import Domain, Ledger
-from noether.resources.base import NoetherResource
+from noether.ledger.resources.ledger.spec import (
+    LedgerCreateSpec,
+    LedgerReadSpec,
+    LedgerUpdateSpec,
+)
 from noether.security.authorization.base import AuthorizationController, PermissionDeniedError
 from noether.security.models import LedgerUser
 from noether.security.models import Role as RoleModel
 from noether.security.permissions.base import LedgerPermissions
 from noether.security.roles.role import OWNER_ROLE
-
-
-class LedgerCreateSpec(NoetherResource):
-    __model__ = Ledger
-    domain: str
-    name: str
-    description: str = ""
-    settings: dict = {}
-    chart_template: str | None = None
-
-    def perform_extra_deserialization(self, is_update, obj):
-        obj.domain = self._domain_row
-
-
-class LedgerUpdateSpec(NoetherResource):
-    __model__ = Ledger
-    name: str | None = None
-    description: str | None = None
-    settings: dict | None = None
-
-
-class LedgerReadSpec(NoetherResource):
-    __model__ = Ledger
-    id: UUID4 | None = None
-    name: str = ""
-    description: str = ""
-    settings: dict = {}
-    domain: str | None = None
-    created_date: datetime.datetime | None = None
-    modified_date: datetime.datetime | None = None
-
-    @classmethod
-    def perform_extra_serialization(cls, mapping, obj):
-        super().perform_extra_serialization(mapping, obj)
-        mapping["domain"] = obj.domain.slug
-        mapping.pop("deleted", None)
 
 
 class LedgerViewSet(NoetherModelViewSet):

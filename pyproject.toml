@@ -17,6 +17,7 @@ dependencies = [
     "celery[redis]>=5.4",
     "django-celery-beat>=2.7",
     "redis>=5.0",
+    "django-filter>=26.1",
 ]
 
 [dependency-groups]

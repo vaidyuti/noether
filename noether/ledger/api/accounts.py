@@ -1,8 +1,7 @@
-import datetime
 from decimal import Decimal
 
 from django.utils.dateparse import parse_datetime
-from pydantic import UUID4
+from django_filters import rest_framework as filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -11,12 +10,16 @@ from noether.api.viewsets.base import NoetherModelViewSet
 from noether.domains.registry import DomainRegistry
 from noether.ledger.api.base import LedgerScopedMixin
 from noether.ledger.models import Account, Unit
+from noether.ledger.resources.account.spec import (
+    AccountReadSpec,
+    AccountSpec,
+    AccountUpdateSpec,
+)
 from noether.ledger.services.balances import (
     ValuationUnavailableError,
     get_balance,
     get_market_value,
 )
-from noether.resources.base import NoetherResource
 from noether.security.permissions.base import (
     AccountPermissions,
     BalancePermissions,
@@ -24,43 +27,10 @@ from noether.security.permissions.base import (
 )
 
 
-class AccountSpec(NoetherResource):
-    __model__ = Account
-    name: str
-    account_type: str
-    unit: UUID4
-    parent: UUID4 | None = None
-    is_placeholder: bool = False
-    metadata: dict = {}
-
-    def perform_extra_deserialization(self, is_update, obj):
-        obj.unit = self._unit_row
-        obj.parent = self._parent_row
-
-
-class AccountUpdateSpec(NoetherResource):
-    __model__ = Account
-    name: str | None = None
-    metadata: dict | None = None
-
-
-class AccountReadSpec(NoetherResource):
-    __model__ = Account
-    id: UUID4 | None = None
-    name: str = ""
-    account_type: str = ""
-    unit: str | None = None
-    parent: UUID4 | None = None
-    is_placeholder: bool = False
-    archived: bool = False
-    metadata: dict = {}
-    created_date: datetime.datetime | None = None
-
-    @classmethod
-    def perform_extra_serialization(cls, mapping, obj):
-        super().perform_extra_serialization(mapping, obj)
-        mapping["unit"] = obj.unit.symbol
-        mapping["parent"] = obj.parent.external_id if obj.parent_id else None
+class AccountFilters(filters.FilterSet):
+    parent = filters.UUIDFilter(field_name="parent__external_id")
+    type = filters.CharFilter(field_name="account_type")
+    archived = filters.BooleanFilter(field_name="archived")
 
 
 class AccountViewSet(LedgerScopedMixin, NoetherModelViewSet):
@@ -68,21 +38,15 @@ class AccountViewSet(LedgerScopedMixin, NoetherModelViewSet):
     pydantic_model = AccountSpec
     pydantic_read_model = AccountReadSpec
     pydantic_update_model = AccountUpdateSpec
+    filterset_class = AccountFilters
+    filter_backends = [filters.DjangoFilterBackend]
 
     def get_queryset(self):
-        queryset = (
+        return (
             Account.objects.filter(ledger=self.get_ledger(), deleted=False)
             .select_related("unit", "parent")
             .order_by("-id")
         )
-        params = self.request.query_params
-        if params.get("parent"):
-            queryset = queryset.filter(parent__external_id=params["parent"])
-        if params.get("type"):
-            queryset = queryset.filter(account_type=params["type"])
-        if params.get("archived"):
-            queryset = queryset.filter(archived=params["archived"] == "true")
-        return queryset
 
     def validate_data(self, instance, model_obj=None):
         if model_obj is not None:
