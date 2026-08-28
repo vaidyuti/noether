@@ -82,9 +82,7 @@ class CreateTransactionTests(PostingTestBase):
                     amount=Decimal("1.00"),
                     metadata={"k": "v"},
                 ),
-                EntryInput(
-                    account=self.b, direction=EntryDirection.CREDIT, amount=Decimal("1.00")
-                ),
+                EntryInput(account=self.b, direction=EntryDirection.CREDIT, amount=Decimal("1.00")),
             ],
             metadata={"note": "x"},
             created_by=self.user,

@@ -34,9 +34,7 @@ def snapshot_balances() -> int:
         now = timezone.now()
         count = 0
         for account in Account.objects.filter(deleted=False, is_placeholder=False):
-            BalanceSnapshot.objects.create(
-                account=account, as_of=now, balance=get_balance(account)
-            )
+            BalanceSnapshot.objects.create(account=account, as_of=now, balance=get_balance(account))
             count += 1
         return count
     finally:

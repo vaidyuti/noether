@@ -92,9 +92,9 @@ class TransactionViewSet(LedgerScopedMixin, NoetherModelViewSet):
     pydantic_update_model = TransactionUpdateSpec
 
     def get_queryset(self):
-        queryset = Transaction.objects.filter(
-            ledger=self.get_ledger(), deleted=False
-        ).order_by("-id")
+        queryset = Transaction.objects.filter(ledger=self.get_ledger(), deleted=False).order_by(
+            "-id"
+        )
         params = self.request.query_params
         if params.get("status"):
             queryset = queryset.filter(status=params["status"])

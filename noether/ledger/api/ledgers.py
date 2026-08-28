@@ -91,9 +91,7 @@ class LedgerViewSet(NoetherModelViewSet):
         config = DomainRegistry.get(instance.domain.slug)
         chart_template_name = spec.chart_template if spec else None
         if chart_template_name is not None:
-            template = next(
-                t for t in config.chart_templates if t.name == chart_template_name
-            )
+            template = next(t for t in config.chart_templates if t.name == chart_template_name)
             instantiate_chart(ledger=instance, config=config, template=template)
         owner_role = RoleModel.objects.get(name=OWNER_ROLE.name)
         LedgerUser.objects.create(ledger=instance, user=self.request.user, role=owner_role)

@@ -29,13 +29,9 @@ class TransactionAPITests(NoetherAPITestCase):
 
     def test_list_filter_occurred_window(self):
         self.create_txn()
-        r = self.client.get(
-            self.ledger_url("transactions/?occurred_after=2026-01-01T00:00:00Z")
-        )
+        r = self.client.get(self.ledger_url("transactions/?occurred_after=2026-01-01T00:00:00Z"))
         self.assertEqual(len(r.json()["results"]), 1)
-        r = self.client.get(
-            self.ledger_url("transactions/?occurred_before=2026-01-01T00:00:00Z")
-        )
+        r = self.client.get(self.ledger_url("transactions/?occurred_before=2026-01-01T00:00:00Z"))
         self.assertEqual(len(r.json()["results"]), 0)
 
     def test_retrieve(self):

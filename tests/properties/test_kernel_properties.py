@@ -47,23 +47,17 @@ class PropertyBase(HypothesisTestCase):
         cls.user = UserFactory()
         cls.ledger = LedgerFactory()
         cls.unit = UnitFactory(ledger=cls.ledger, symbol="TU", precision=2)
-        cls.accounts = [
-            AccountFactory(ledger=cls.ledger, unit=cls.unit) for _ in range(4)
-        ]
+        cls.accounts = [AccountFactory(ledger=cls.ledger, unit=cls.unit) for _ in range(4)]
 
     def make_entries(self, debits, credits):
         entries = []
         for i, amount in enumerate(debits):
             entries.append(
-                EntryInput(
-                    account=self.accounts[i % 2], direction="debit", amount=amount
-                )
+                EntryInput(account=self.accounts[i % 2], direction="debit", amount=amount)
             )
         for i, amount in enumerate(credits):
             entries.append(
-                EntryInput(
-                    account=self.accounts[2 + i % 2], direction="credit", amount=amount
-                )
+                EntryInput(account=self.accounts[2 + i % 2], direction="credit", amount=amount)
             )
         return entries
 

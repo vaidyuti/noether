@@ -9,7 +9,8 @@ from noether.ledger.tests.factories import (
     UnitFactory,
     UserFactory,
 )
-from noether.security.models import LedgerUser as SecurityLedgerUser, Role
+from noether.security.models import LedgerUser as SecurityLedgerUser
+from noether.security.models import Role
 from tests.support import ensure_registered
 
 OCCURRED = "2026-01-15T00:00:00Z"
@@ -30,12 +31,8 @@ class NoetherAPITestCase(APITestCase):
         cls.ledger = LedgerFactory()
         cls.owner_role = Role.objects.get(name="Owner")
         cls.viewer_role = Role.objects.get(name="Viewer")
-        SecurityLedgerUser.objects.create(
-            ledger=cls.ledger, user=cls.owner, role=cls.owner_role
-        )
-        SecurityLedgerUser.objects.create(
-            ledger=cls.ledger, user=cls.viewer, role=cls.viewer_role
-        )
+        SecurityLedgerUser.objects.create(ledger=cls.ledger, user=cls.owner, role=cls.owner_role)
+        SecurityLedgerUser.objects.create(ledger=cls.ledger, user=cls.viewer, role=cls.viewer_role)
         cls.unit = UnitFactory(ledger=cls.ledger, symbol="TU", precision=2)
         cls.a = AccountFactory(ledger=cls.ledger, unit=cls.unit, name="A")
         cls.b = AccountFactory(ledger=cls.ledger, unit=cls.unit, name="B")

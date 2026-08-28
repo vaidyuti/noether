@@ -81,9 +81,7 @@ class AccountAPITests(NoetherAPITestCase):
         self.assertEqual(len(response.json()["results"]), 2)
 
     def test_filters(self):
-        parent = AccountFactory(
-            ledger=self.ledger, unit=self.unit, is_placeholder=True, name="P"
-        )
+        parent = AccountFactory(ledger=self.ledger, unit=self.unit, is_placeholder=True, name="P")
         AccountFactory(
             ledger=self.ledger, unit=self.unit, parent=parent, name="C", account_type="boundary"
         )
@@ -178,9 +176,7 @@ class AccountAPITests(NoetherAPITestCase):
     def test_balance_as_of(self):
         self.create_txn(post=True)
         response = self.client.get(
-            self.ledger_url(
-                f"accounts/{self.a.external_id}/balance/?as_of=2026-01-01T00:00:00Z"
-            )
+            self.ledger_url(f"accounts/{self.a.external_id}/balance/?as_of=2026-01-01T00:00:00Z")
         )
         self.assertEqual(response.json()["balance"], "0.00")
 
@@ -265,9 +261,7 @@ class PriceAPITests(NoetherAPITestCase):
         return payload
 
     def test_create_price(self):
-        response = self.client.post(
-            self.ledger_url("prices/"), self.price_payload(), format="json"
-        )
+        response = self.client.post(self.ledger_url("prices/"), self.price_payload(), format="json")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.json()["price"], "2.5000000000")
 
@@ -301,9 +295,7 @@ class PriceAPITests(NoetherAPITestCase):
 
     def test_viewer_cannot_write_price_403(self):
         self.client.force_authenticate(self.viewer)
-        response = self.client.post(
-            self.ledger_url("prices/"), self.price_payload(), format="json"
-        )
+        response = self.client.post(self.ledger_url("prices/"), self.price_payload(), format="json")
         self.assertEqual(response.status_code, 403)
 
     def test_viewer_cannot_read_prices_403(self):

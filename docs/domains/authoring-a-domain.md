@@ -53,6 +53,7 @@ All registration happens in `AppConfig.ready()`:
 ```python
 from django.apps import AppConfig
 
+
 class NoetherFinanceConfig(AppConfig):
     name = "noether_finance"
 
@@ -63,6 +64,7 @@ class NoetherFinanceConfig(AppConfig):
         from noether.security.authorization.base import AuthorizationController
 
         from .domain import FINANCE_DOMAIN
+
         DomainRegistry.register(FINANCE_DOMAIN)
         # optional:
         # PermissionController.register_permission_handler(FinancePermissions)
@@ -117,12 +119,12 @@ A named starter account tree instantiated when a ledger is created with
 ChartTemplate(
     name="default",
     nodes=[
-        ChartNode(path="Assets",            account_type="asset",   unit="INR", placeholder=True),
-        ChartNode(path="Assets/Bank",       account_type="asset",   unit="INR"),
-        ChartNode(path="Expenses",          account_type="expense", unit="INR", placeholder=True),
-        ChartNode(path="Expenses/Food",     account_type="expense", unit="INR"),
-        ChartNode(path="Income/Salary",     account_type="income",  unit="INR"),
-        ChartNode(path="Trading/INR",       account_type="trading", unit="INR"),
+        ChartNode(path="Assets", account_type="asset", unit="INR", placeholder=True),
+        ChartNode(path="Assets/Bank", account_type="asset", unit="INR"),
+        ChartNode(path="Expenses", account_type="expense", unit="INR", placeholder=True),
+        ChartNode(path="Expenses/Food", account_type="expense", unit="INR"),
+        ChartNode(path="Income/Salary", account_type="income", unit="INR"),
+        ChartNode(path="Trading/INR", account_type="trading", unit="INR"),
     ],
 )
 ```
@@ -140,6 +142,7 @@ to reject the post (maps to HTTP 400 with your message).
 ```python
 from noether.domains.validators import TransactionValidator
 
+
 class NonNegativeBalances(TransactionValidator):
     """Energy storage cannot go below zero."""
 
@@ -151,13 +154,8 @@ class NonNegativeBalances(TransactionValidator):
         #                 locked — validators MUST NOT query balances
         #                 themselves or perform writes)
         for entry in entries:
-            if (
-                entry.account.metadata.get("non_negative")
-                and balances_after[entry.account_id] < 0
-            ):
-                raise DomainValidationError(
-                    f"{entry.account.name} cannot go negative"
-                )
+            if entry.account.metadata.get("non_negative") and balances_after[entry.account_id] < 0:
+                raise DomainValidationError(f"{entry.account.name} cannot go negative")
 ```
 
 Rules for validators:
@@ -170,8 +168,9 @@ Rules for validators:
 ```python
 from noether.domains.valuation import ValuationStrategy
 
+
 class MarketDataFetcher(ValuationStrategy):
-    schedule = "0 18 * * 1-5"   # crontab, celery-beat entry auto-registered
+    schedule = "0 18 * * 1-5"  # crontab, celery-beat entry auto-registered
 
     def fetch_prices(self, ledger) -> list[PriceQuote]:
         """Return PriceQuote(unit_symbol, quote_unit_symbol, price, as_of, source).

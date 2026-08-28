@@ -43,9 +43,7 @@ def get_balance(account: Account, as_of: datetime | None = None) -> Decimal:
             return Decimal(0)
         return row.balance
     snapshot = (
-        BalanceSnapshot.objects.filter(account=account, as_of__lte=as_of)
-        .order_by("-as_of")
-        .first()
+        BalanceSnapshot.objects.filter(account=account, as_of__lte=as_of).order_by("-as_of").first()
     )
     if snapshot is None:
         return _fold_entries(account, None, as_of)
@@ -57,14 +55,10 @@ def get_market_value(account: Account, value_in: Unit, as_of: datetime | None = 
     balance = get_balance(account, as_of=as_of)
     if account.unit_id == value_in.id:
         return balance
-    prices = UnitPrice.objects.filter(
-        ledger=account.ledger, unit=account.unit, quote_unit=value_in
-    )
+    prices = UnitPrice.objects.filter(ledger=account.ledger, unit=account.unit, quote_unit=value_in)
     if as_of is not None:
         prices = prices.filter(as_of__lte=as_of)
     latest = prices.order_by("-as_of").first()
     if latest is None:
-        raise ValuationUnavailableError(
-            f"no price for {account.unit.symbol} in {value_in.symbol}"
-        )
+        raise ValuationUnavailableError(f"no price for {account.unit.symbol} in {value_in.symbol}")
     return balance * latest.price

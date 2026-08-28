@@ -23,7 +23,7 @@ from tests.support import TEST_DOMAIN, StaticPriceFetcher, ensure_registered
 
 
 def make_config(**overrides):
-    kwargs = dict(
+    kwargs = dict(  # noqa: C408
         slug="valid-domain",
         name="Valid",
         version="1.0.0",
@@ -154,7 +154,9 @@ class ChartInstantiationTests(TestCase):
         ledger = Ledger.objects.create(
             domain=Domain.objects.get(slug="testdomain"), name="Chart Ledger"
         )
-        instantiate_chart(ledger=ledger, config=TEST_DOMAIN, template=TEST_DOMAIN.chart_templates[0])
+        instantiate_chart(
+            ledger=ledger, config=TEST_DOMAIN, template=TEST_DOMAIN.chart_templates[0]
+        )
         self.assertEqual(Unit.objects.filter(ledger=ledger).count(), 2)
         stores = Account.objects.get(ledger=ledger, name="Stores", parent=None)
         self.assertTrue(stores.is_placeholder)
@@ -169,9 +171,7 @@ class ChartInstantiationTests(TestCase):
     def test_unknown_template_raises(self):
         ensure_registered()
         sync_domain_rows()
-        ledger = Ledger.objects.create(
-            domain=Domain.objects.get(slug="testdomain"), name="X"
-        )
+        Ledger.objects.create(domain=Domain.objects.get(slug="testdomain"), name="X")
         names = [t.name for t in TEST_DOMAIN.chart_templates]
         self.assertNotIn("nope", names)
 

@@ -26,19 +26,28 @@ core-internal and may change without notice.
 
 ```python
 def create_transaction(
-    *, ledger: Ledger, description: str, occurred_at: datetime,
-    entries: list[EntryInput],       # EntryInput(account, direction, amount, metadata=None)
-    metadata: dict | None = None, created_by: User,
-) -> Transaction: ...                # returns DRAFT
+    *,
+    ledger: Ledger,
+    description: str,
+    occurred_at: datetime,
+    entries: list[EntryInput],  # EntryInput(account, direction, amount, metadata=None)
+    metadata: dict | None = None,
+    created_by: User,
+) -> Transaction: ...  # returns DRAFT
+
 
 def post_transaction(*, transaction: Transaction, posted_by: User) -> Transaction:
     """Atomic. Runs kernel invariants then domain validators.
     Raises ConservationError / DomainValidationError / ImmutabilityError."""
 
+
 def reverse_transaction(
-    *, transaction: Transaction, reversed_by: User,
-    description: str | None = None, occurred_at: datetime | None = None,
-) -> Transaction: ...                # returns the posted mirror transaction
+    *,
+    transaction: Transaction,
+    reversed_by: User,
+    description: str | None = None,
+    occurred_at: datetime | None = None,
+) -> Transaction: ...  # returns the posted mirror transaction
 ```
 
 ## Guarantees to plugs

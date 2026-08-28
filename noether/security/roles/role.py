@@ -63,6 +63,7 @@ VIEWER_ROLE = Role(
     ),
 )
 
+
 class RoleController:
     override_roles: list[Role] = []
 

@@ -10,7 +10,8 @@ from noether.security.authorization.base import (
 )
 from noether.security.models import LedgerUser, Permission, Role, RolePermission
 from noether.security.permissions.base import LedgerPermissions, PermissionController
-from noether.security.roles.role import OWNER_ROLE, VIEWER_ROLE, Role as RoleDef, RoleController
+from noether.security.roles.role import OWNER_ROLE, VIEWER_ROLE, RoleController
+from noether.security.roles.role import Role as RoleDef
 
 
 class SyncCommandTests(TestCase):
@@ -43,9 +44,7 @@ class SyncCommandTests(TestCase):
         extra = Permission.objects.get(slug="transaction__post")
         RolePermission.objects.create(role=viewer, permission=extra)
         call_command("sync_permissions_roles")
-        self.assertFalse(
-            RolePermission.objects.filter(role=viewer, permission=extra).exists()
-        )
+        self.assertFalse(RolePermission.objects.filter(role=viewer, permission=extra).exists())
 
 
 class RoleControllerTests(TestCase):
@@ -183,9 +182,7 @@ class AuthorizationControllerTests(TestCase):
         AuthorizationController.register_internal_controller(ExtraHandler)
         try:
             AuthorizationController.register_internal_controller(ExtraHandler)
-            self.assertEqual(
-                AuthorizationController.internal_controllers.count(ExtraHandler), 1
-            )
+            self.assertEqual(AuthorizationController.internal_controllers.count(ExtraHandler), 1)
             self.assertTrue(AuthorizationController.call("can_extra", self.owner))
         finally:
             AuthorizationController.internal_controllers.remove(ExtraHandler)

@@ -44,9 +44,7 @@ class LedgerAPITests(NoetherAPITestCase):
         body = response.json()
         ledger = Ledger.objects.get(external_id=body["id"])
         self.assertEqual(Unit.objects.filter(ledger=ledger).count(), 2)
-        self.assertTrue(
-            Account.objects.filter(ledger=ledger, name="Main").exists()
-        )
+        self.assertTrue(Account.objects.filter(ledger=ledger, name="Main").exists())
         # creator becomes Owner member
         self.assertTrue(
             SecurityLedgerUser.objects.filter(
@@ -172,9 +170,7 @@ class MemberAPITests(NoetherAPITestCase):
         membership = SecurityLedgerUser.objects.get(ledger=self.ledger, user=self.viewer)
         response = self.client.delete(self.ledger_url(f"members/{membership.external_id}/"))
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(
-            SecurityLedgerUser.objects.filter(pk=membership.pk).exists()
-        )
+        self.assertFalse(SecurityLedgerUser.objects.filter(pk=membership.pk).exists())
 
     def test_viewer_cannot_manage_members_403(self):
         self.client.force_authenticate(self.viewer)

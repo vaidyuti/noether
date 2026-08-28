@@ -80,7 +80,10 @@ class Transaction(NoetherBaseModel):
         if current.status == TransactionStatus.DRAFT:
             return super().save(*args, **kwargs)
         changed = _changed_fields(current, self)
-        if current.status == TransactionStatus.POSTED and changed <= self.ALLOWED_POSTED_TRANSITIONS:
+        if (
+            current.status == TransactionStatus.POSTED
+            and changed <= self.ALLOWED_POSTED_TRANSITIONS
+        ):
             # the only legal posted-state mutation: being reversed
             return super().save(*args, **kwargs)
         raise ImmutabilityError(f"transaction {self.external_id} is {current.status} and immutable")
@@ -123,9 +126,7 @@ class Entry(NoetherBaseModel):
             return
         status = Transaction.objects.get(pk=self.transaction_id).status
         if status != TransactionStatus.DRAFT:
-            raise ImmutabilityError(
-                f"entries of {status} transactions cannot be {verb}"
-            )
+            raise ImmutabilityError(f"entries of {status} transactions cannot be {verb}")
 
 
 class AccountBalance(NoetherBaseModel):

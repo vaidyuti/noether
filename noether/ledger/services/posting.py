@@ -29,9 +29,7 @@ class EntryInput:
 
 def _validate_entry_account(*, ledger: Ledger, account: Account) -> None:
     if account.ledger_id != ledger.id:
-        raise ConservationError(
-            f"account {account.name} does not belong to ledger {ledger.name}"
-        )
+        raise ConservationError(f"account {account.name} does not belong to ledger {ledger.name}")
     if account.is_placeholder:
         raise ConservationError(f"account {account.name} is a placeholder")
 
@@ -97,9 +95,7 @@ def _check_conservation(entries: list[Entry]) -> None:
             quantum = Decimal(1).scaleb(-unit.precision)
             debits = per_unit["debit"].quantize(quantum)
             credits = per_unit["credit"].quantize(quantum)
-            raise ConservationError(
-                f"unit {unit.symbol}: debits {debits} != credits {credits}"
-            )
+            raise ConservationError(f"unit {unit.symbol}: debits {debits} != credits {credits}")
 
 
 def _signed_delta(entry: Entry) -> Decimal:
@@ -186,7 +182,9 @@ def reverse_transaction(
         ]
         mirror = create_transaction(
             ledger=txn.ledger,
-            description=description if description is not None else f"Reversal of: {txn.description}",
+            description=description
+            if description is not None
+            else f"Reversal of: {txn.description}",
             occurred_at=occurred_at if occurred_at is not None else timezone.now(),
             entries=mirror_entries,
             metadata={},

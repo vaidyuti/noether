@@ -19,9 +19,7 @@ def sync_permissions_roles() -> None:
             name=role.name, defaults={"description": role.description, "is_system": True}
         )
         for slug in role.permissions:
-            RolePermission.objects.get_or_create(
-                role=role_row, permission=permission_rows[slug]
-            )
+            RolePermission.objects.get_or_create(role=role_row, permission=permission_rows[slug])
         RolePermission.objects.filter(role=role_row).exclude(
             permission__slug__in=role.permissions
         ).delete()

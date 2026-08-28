@@ -22,9 +22,7 @@ from noether.security.authorization.base import PermissionDeniedError
 
 def noether_exception_handler(exc, context):
     if isinstance(exc, PermissionDeniedError):
-        return Response(
-            {"errors": [{"type": "permission_denied", "msg": str(exc)}]}, status=403
-        )
+        return Response({"errors": [{"type": "permission_denied", "msg": str(exc)}]}, status=403)
     if isinstance(exc, DjangoValidationError):
         exc = RestFrameworkValidationError(detail={"detail": get_error_detail(exc)[0]})
     if isinstance(exc, ValidationError):
@@ -57,7 +55,7 @@ def noether_exception_handler(exc, context):
         detail = exc.detail
         if isinstance(detail, dict) and "errors" in detail:
             return Response(detail, status=400)
-        if isinstance(detail, list):
+        if isinstance(detail, list):  # noqa: SIM108 — branch coverage clarity
             msg = " , ".join([str(e) for e in detail])
         else:
             msg = str(detail)
