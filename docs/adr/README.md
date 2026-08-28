@@ -13,3 +13,4 @@ change a decision). Template: `template.md`.
 | [0006](0006-amounts-and-units.md) | Decimal amounts, opaque per-ledger units, per-unit balancing | Accepted |
 | [0007](0007-balance-materialization.md) | Materialized balances + snapshots + integrity verifier | Accepted |
 | [0008](0008-stack-and-tooling.md) | Python 3.13 / Django / DRF+pydantic / uv / Postgres / Redis / Celery | Accepted |
+| [0009](0009-care-structure-mirroring.md) | Specs in resources/ packages; django-filter for list filtering (Care parity) | Accepted |
