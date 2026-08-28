@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: noether
+      POSTGRES_USER: noether
+      POSTGRES_PASSWORD: noether
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noether"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: .
+    environment: &env
+      DJANGO_SETTINGS_MODULE: config.settings.deployment
+      SECRET_KEY: change-me
+      DATABASE_URL: postgres://noether:noether@db:5432/noether
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery:
+    build: .
+    command: celery -A config.celery_app worker -l info
+    environment: *env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    build: .
+    command: celery -A config.celery_app beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment: *env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
