@@ -14,3 +14,5 @@ change a decision). Template: `template.md`.
 | [0007](0007-balance-materialization.md) | Materialized balances + snapshots + integrity verifier | Accepted |
 | [0008](0008-stack-and-tooling.md) | Python 3.13 / Django / DRF+pydantic / uv / Postgres / Redis / Celery | Accepted |
 | [0009](0009-care-structure-mirroring.md) | Specs in resources/ packages; django-filter for list filtering (Care parity) | Accepted |
+| [0010](0010-normalized-balance-presentation.md) | Balances normalized by account-type normal side on all read/hook surfaces; raw stays internal | Accepted |
+| [0011](0011-plug-integration-hooks.md) | First-class plug hooks: urls in DomainConfig, create_ledger service, idempotent registration, exported LedgerScopedMixin | Accepted |

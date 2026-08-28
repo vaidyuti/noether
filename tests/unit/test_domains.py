@@ -105,10 +105,18 @@ class DomainConfigValidationTests(TestCase):
 
 
 class DomainRegistryTests(TestCase):
-    def test_register_duplicate_slug_rejected(self):
+    def test_register_identical_config_is_noop(self):
+        ensure_registered()
+        DomainRegistry.register(TEST_DOMAIN)
+        self.assertEqual(
+            [c.slug for c in DomainRegistry.all()].count("testdomain"),
+            1,
+        )
+
+    def test_register_conflicting_slug_rejected(self):
         ensure_registered()
         with self.assertRaises(DomainConfigError):
-            DomainRegistry.register(TEST_DOMAIN)
+            DomainRegistry.register(make_config(slug="testdomain"))
 
     def test_register_invalid_config_rejected(self):
         with self.assertRaises(DomainConfigError):

@@ -110,8 +110,11 @@ account types, etc.) at startup — a bad config fails boot, not runtime.
 
 ### AccountTypeDef
 
-`normal_balance` is metadata the core stores and echoes through the API
-(so UIs can render signs) but the core never uses it in balance math.
+`normal_balance` drives balance normalization (ADR-0010): every read/hook
+surface reports `raw × (+1 if debit-normal else −1)`, so choose sides such
+that an account's natural state is its normal side (what it *holds* or
+*accumulates* debit-normal only if debits grow it). The kernel's stored fold
+stays raw debits−credits.
 
 ### ChartTemplate
 
@@ -153,9 +156,11 @@ class NonNegativeBalances(TransactionValidator):
         # transaction: kernel Transaction (posted-pending)
         # entries: list[Entry] being posted
         # balances_after: {account_id: Decimal} post-application balances
-        #                 for affected accounts (computed by core, already
-        #                 locked — validators MUST NOT query balances
-        #                 themselves or perform writes)
+        #                 for affected accounts, NORMALIZED by each account
+        #                 type's normal side (ADR-0010) — natural state is
+        #                 positive. Computed by core, already locked —
+        #                 validators MUST NOT query balances themselves or
+        #                 perform writes.
         for entry in entries:
             if entry.account.metadata.get("non_negative") and balances_after[entry.account_id] < 0:
                 raise DomainValidationError(f"{entry.account.name} cannot go negative")

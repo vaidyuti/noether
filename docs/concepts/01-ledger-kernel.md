@@ -78,8 +78,16 @@ One leg of a transaction.
 
 Materialized current balance per account, updated inside the posting
 transaction under `select_for_update`. Read-optimized; never the source of
-truth. `balance` is signed: debits minus credits (presentation sign is a
-domain concern via the account type's normal side).
+truth. The stored `balance` is **raw and signed**: debits minus credits.
+
+Raw values are internal. Every read/hook surface (balance endpoints,
+`get_balance`, validator `balances_after`) speaks the **normalized balance**
+(ADR-0010): `raw × (+1 if the account type is debit-normal else −1)`, so a
+correctly-typed account in its natural state always reads positive — an
+asset bank account after a deposit, a battery holding charge, an income
+account after earning. Raw remains available via `raw_balance` /
+`get_raw_balance` for conservation math. Account types without a registered
+`AccountTypeDef` are treated as debit-normal.
 
 ### BalanceSnapshot
 

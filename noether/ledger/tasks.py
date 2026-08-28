@@ -6,7 +6,7 @@ from django.db import connection
 from django.utils import timezone
 
 from noether.ledger.models import Account, AccountBalance, BalanceSnapshot, Ledger, UnitPrice
-from noether.ledger.services.balances import _fold_entries, get_balance
+from noether.ledger.services.balances import _fold_entries, get_raw_balance
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,9 @@ def snapshot_balances() -> int:
         now = timezone.now()
         count = 0
         for account in Account.objects.filter(deleted=False, is_placeholder=False):
-            BalanceSnapshot.objects.create(account=account, as_of=now, balance=get_balance(account))
+            BalanceSnapshot.objects.create(
+                account=account, as_of=now, balance=get_raw_balance(account)
+            )
             count += 1
         return count
     finally:

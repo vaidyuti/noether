@@ -17,6 +17,7 @@ from noether.ledger.models import (
     TransactionStatus,
     Unit,
 )
+from noether.ledger.services.balances import normal_sign
 
 
 @dataclass(frozen=True)
@@ -142,8 +143,13 @@ def post_transaction(*, transaction: Transaction, posted_by) -> Transaction:
             balances_after[entry.account_id] += _signed_delta(entry)
 
         config = DomainRegistry.get(txn.ledger.domain.slug)
+        accounts_by_id = {entry.account_id: entry.account for entry in entries}
+        normalized_after = {
+            account_id: normal_sign(accounts_by_id[account_id]) * raw
+            for account_id, raw in balances_after.items()
+        }
         for validator in config.validators:
-            validator.validate(txn, entries, dict(balances_after))
+            validator.validate(txn, entries, dict(normalized_after))
 
         for account_id in account_ids:
             row = balance_rows[account_id]

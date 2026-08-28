@@ -1,4 +1,35 @@
-from noether.domains.config import ChartTemplate, DomainConfig
+from noether.domains.config import ChartTemplate, DomainConfig, DomainConfigError
+
+
+def create_ledger(*, domain_slug: str, name: str, owner, chart_template=None, description=""):
+    """Create a ledger programmatically, mirroring the REST creation path."""
+    from noether.domains.registry import DomainRegistry
+    from noether.ledger.models import Domain, Ledger
+    from noether.security.models import LedgerUser
+    from noether.security.models import Role as RoleModel
+    from noether.security.roles.role import OWNER_ROLE
+
+    config = DomainRegistry.get(domain_slug)
+    domain_row = Domain.objects.filter(slug=domain_slug).first()
+    if domain_row is None:
+        raise DomainConfigError(f"domain {domain_slug!r} is not synced")
+    template = None
+    if chart_template is not None:
+        template = next((t for t in config.chart_templates if t.name == chart_template), None)
+        if template is None:
+            raise DomainConfigError(f"unknown chart template {chart_template!r}")
+    ledger = Ledger.objects.create(
+        domain=domain_row,
+        name=name,
+        description=description,
+        created_by=owner,
+        updated_by=owner,
+    )
+    if template is not None:
+        instantiate_chart(ledger=ledger, config=config, template=template)
+    owner_role = RoleModel.objects.get(name=OWNER_ROLE.name)
+    LedgerUser.objects.create(ledger=ledger, user=owner, role=owner_role)
+    return ledger
 
 
 def sync_domain_rows() -> list:

@@ -47,6 +47,7 @@ class DomainConfig:
     chart_templates: list[ChartTemplate] = field(default_factory=list)
     validators: list = field(default_factory=list)
     valuation: object | None = None
+    urls: str | None = None
 
     def validate(self) -> None:
         if not VALID_SLUG.match(self.slug):

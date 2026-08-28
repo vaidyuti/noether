@@ -35,8 +35,23 @@ def _fold_entries(account: Account, since: datetime | None, until: datetime | No
     return total
 
 
-def get_balance(account: Account, as_of: datetime | None = None) -> Decimal:
-    """Current balance from AccountBalance; point-in-time via snapshot + replay."""
+def normal_sign(account: Account) -> int:
+    """+1 for debit-normal (or unknown), -1 for credit-normal account types."""
+    from noether.domains.config import DomainConfigError
+    from noether.domains.registry import DomainRegistry
+
+    try:
+        config = DomainRegistry.get(account.ledger.domain.slug)
+    except DomainConfigError:
+        return 1
+    for type_def in config.account_types:
+        if type_def.name == account.account_type:
+            return -1 if type_def.normal_balance == "credit" else 1
+    return 1
+
+
+def get_raw_balance(account: Account, as_of: datetime | None = None) -> Decimal:
+    """Raw balance (debits - credits) from AccountBalance; point-in-time via snapshot + replay."""
     if as_of is None:
         row = AccountBalance.objects.filter(account=account).first()
         if row is None:
@@ -48,6 +63,11 @@ def get_balance(account: Account, as_of: datetime | None = None) -> Decimal:
     if snapshot is None:
         return _fold_entries(account, None, as_of)
     return snapshot.balance + _fold_entries(account, snapshot.as_of, as_of)
+
+
+def get_balance(account: Account, as_of: datetime | None = None) -> Decimal:
+    """Normalized balance: raw x normal sign of the account's type."""
+    return normal_sign(account) * get_raw_balance(account, as_of=as_of)
 
 
 def get_market_value(account: Account, value_in: Unit, as_of: datetime | None = None) -> Decimal:

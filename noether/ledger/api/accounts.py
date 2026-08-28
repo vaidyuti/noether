@@ -19,6 +19,7 @@ from noether.ledger.services.balances import (
     ValuationUnavailableError,
     get_balance,
     get_market_value,
+    get_raw_balance,
 )
 from noether.security.permissions.base import (
     AccountPermissions,
@@ -108,6 +109,7 @@ class AccountViewSet(LedgerScopedMixin, NoetherModelViewSet):
             "account": str(instance.external_id),
             "unit": instance.unit.symbol,
             "balance": str(get_balance(instance, as_of=as_of).quantize(quantum)),
+            "raw_balance": str(get_raw_balance(instance, as_of=as_of).quantize(quantum)),
         }
         value_in = request.query_params.get("value_in")
         if value_in:

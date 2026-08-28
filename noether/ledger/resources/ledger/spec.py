@@ -14,9 +14,6 @@ class LedgerCreateSpec(NoetherResource):
     settings: dict = {}
     chart_template: str | None = None
 
-    def perform_extra_deserialization(self, is_update, obj):
-        obj.domain = self._domain_row
-
 
 class LedgerUpdateSpec(NoetherResource):
     __model__ = Ledger
