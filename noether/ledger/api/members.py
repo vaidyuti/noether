@@ -94,3 +94,6 @@ class LedgerUserViewSet(LedgerScopedMixin, NoetherModelViewSet):
     def perform_create(self, instance):
         instance.ledger = self.get_ledger()
         super().perform_create(instance)
+
+    def perform_destroy(self, instance):
+        instance.delete()

@@ -44,6 +44,12 @@ class UnitViewSet(LedgerScopedMixin, NoetherModelViewSet):
         return Unit.objects.filter(ledger=self.get_ledger(), deleted=False).order_by("-id")
 
     def validate_data(self, instance, model_obj=None):
+        if model_obj is None and (
+            Unit.objects.filter(
+                ledger=self.get_ledger(), symbol=instance.symbol, deleted=False
+            ).exists()
+        ):
+            raise ValidationError(f"unit symbol {instance.symbol!r} already exists")
         precision = instance.precision
         if precision is None:
             return

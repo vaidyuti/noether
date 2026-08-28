@@ -52,7 +52,7 @@ class UnitPriceReadSpec(NoetherResource):
         super().perform_extra_serialization(mapping, obj)
         mapping["unit"] = obj.unit.symbol
         mapping["quote_unit"] = obj.quote_unit.symbol
-        mapping["price"] = str(obj.price)
+        mapping["price"] = str(Decimal(obj.price).quantize(Decimal("1.0000000000")))
 
 
 class UnitPriceViewSet(

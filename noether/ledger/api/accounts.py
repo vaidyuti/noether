@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 
 from django.utils.dateparse import parse_datetime
 from pydantic import UUID4
@@ -138,10 +139,11 @@ class AccountViewSet(LedgerScopedMixin, NoetherModelViewSet):
         self.check_ledger_permission(BalancePermissions.balance__read.name)
         instance = self.get_object()
         as_of = _parse_as_of(request)
+        quantum = Decimal(1).scaleb(-instance.unit.precision)
         result = {
             "account": str(instance.external_id),
             "unit": instance.unit.symbol,
-            "balance": str(get_balance(instance, as_of=as_of)),
+            "balance": str(get_balance(instance, as_of=as_of).quantize(quantum)),
         }
         value_in = request.query_params.get("value_in")
         if value_in:
@@ -154,8 +156,9 @@ class AccountViewSet(LedgerScopedMixin, NoetherModelViewSet):
                 market_value = get_market_value(instance, quote_unit, as_of=as_of)
             except ValuationUnavailableError as exc:
                 raise ValidationError(str(exc)) from exc
-            result["value_in"] = value_in
-            result["market_value"] = str(market_value)
+            value_quantum = Decimal(1).scaleb(-quote_unit.precision)
+            result["value_unit"] = value_in
+            result["value"] = str(market_value.quantize(value_quantum))
         return Response(result)
 
     @action(detail=True, methods=["GET"])

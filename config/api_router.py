@@ -9,7 +9,7 @@ from noether.ledger.api.roles import RoleViewSet
 from noether.ledger.api.transactions import TransactionViewSet
 from noether.ledger.api.units import UnitViewSet
 
-router = SimpleRouter(use_regex_path=False)
+router = SimpleRouter()
 router.register("domains", DomainViewSet, basename="domain")
 router.register("ledgers", LedgerViewSet, basename="ledger")
 router.register("roles", RoleViewSet, basename="role")
