@@ -6,9 +6,8 @@
 
 ## Context
 
-Care's RBAC spans facility/government org hierarchies. Noether's initial
-use cases (personal finance, home energy) need multi-user ledgers but no
-organizational nesting.
+Noether's initial use cases (personal finance, home energy) need multi-user
+ledgers but no organizational nesting.
 
 ## Decision
 
@@ -17,9 +16,8 @@ organizational nesting.
 2. Roles are flat permission bundles. Built-ins: Owner, Bookkeeper,
    Auditor, Viewer (`docs/concepts/03-security-rbac.md`).
 3. Controller pattern (PermissionController, RoleController,
-   AuthorizationController with plug override chains) is retained from Care
-   verbatim — this keeps the door open for plugs to add roles/permissions
-   without core changes.
+   AuthorizationController with plug override chains) keeps the door open
+   for plugs to add roles/permissions without core changes.
 4. Permissions are code-defined enums synced to DB via
    `sync_permissions_roles` management command.
 5. No organization layer in v1. If needed later, an Org model owning
@@ -35,7 +33,7 @@ organizational nesting.
 
 ## Alternatives considered
 
-- Care-style org hierarchy from day 0: rejected — YAGNI for the target use
-  cases; enormous test surface.
+- Org hierarchy from day 0: rejected — YAGNI for the target use cases;
+  enormous test surface.
 - Django's built-in permissions: rejected — model-level, not object/ledger
   scoped; doesn't support plug-contributed roles cleanly.

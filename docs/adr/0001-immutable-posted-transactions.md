@@ -37,7 +37,7 @@ on date X" becomes unanswerable.
 
 ## Alternatives considered
 
-- **Mutable with audit log** (Care's general pattern): rejected — audit logs
+- **Mutable with audit log**: rejected — audit logs
   record that history changed; ledgers must guarantee it cannot.
 - **Delete + repost**: rejected — breaks referential integrity of external
   references (receipts, meter readings) and point-in-time replay.

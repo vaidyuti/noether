@@ -4,7 +4,7 @@ Base path: `/api/v1/`. JWT auth (`Authorization: Bearer …`). OpenAPI at
 `/api/schema/` (drf-spectacular). All resources addressed by `external_id`
 (UUID). Nested routing under ledgers via drf-nested-routers.
 
-## Conventions (Care parity)
+## Conventions
 
 - pydantic specs (`NoetherResource`) do serialization/deserialization;
   viewsets extend `NoetherBaseViewSet` (mixin lifecycle:
@@ -67,7 +67,7 @@ GET/POST      /api/v1/ledgers/{id}/prices/
 ## Filtering convention
 
 List endpoints filter via **django-filter** `FilterSet` classes declared next to each
-viewset (`filterset_class` + `DjangoFilterBackend`), mirroring Care. Query param names
+viewset (`filterset_class` + `DjangoFilterBackend`). Query param names
 above are frozen public contract. UUID params filter on `external_id` FK lookups;
 datetime params (`occurred_after/before`, `as_of_after/before`) are ISO 8601 and
 validated by the FilterSet — invalid UUID/datetime values return **400**; invalid

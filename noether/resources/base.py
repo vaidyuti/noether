@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 
 class NoetherResource(BaseModel):
-    """pydantic v2 spec base — Care's EMRResource, minus questionnaire baggage."""
+    """pydantic v2 spec base for API resources, minus questionnaire baggage."""
 
     __model__ = None
     __exclude__: list[str] = []

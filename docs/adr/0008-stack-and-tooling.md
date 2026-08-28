@@ -6,8 +6,7 @@
 
 ## Context
 
-Mirror Care's proven stack where it earns its keep; modernize where Care
-carries legacy (pipenv).
+Mirror a proven Django/DRF stack; modernize the tooling (uv over pipenv).
 
 ## Decision
 
@@ -15,7 +14,7 @@ carries legacy (pipenv).
 | --- | --- |
 | Language | Python 3.13 (strict) |
 | Framework | Django 5.2 LTS + Django REST Framework |
-| Serialization/validation | pydantic v2 specs (`NoetherResource`) over DRF serializers, Care's pattern |
+| Serialization/validation | pydantic v2 specs (`NoetherResource`) over DRF serializers |
 | API docs | drf-spectacular (OpenAPI) |
 | Auth | JWT via djangorestframework-simplejwt |
 | Routing | drf-nested-routers (`/ledgers/{id}/…`) |
@@ -31,11 +30,10 @@ carries legacy (pipenv).
 
 Naming: Django project package `noether`, core apps `noether.ledger`,
 `noether.security`, `noether.users`, `noether.domains`; config package
-`config` (Care parity).
+`config`.
 
 ## Consequences
 
-- (+) Anyone fluent in Care is fluent here; agents can crib Care patterns.
 - (+) uv gives fast, reproducible, PEP-621-native installs.
 - (n) Django 5.2 LTS chosen over 6.0 for library compatibility maturity;
   revisit at 6.x LTS.
@@ -43,7 +41,7 @@ Naming: Django project package `noether`, core apps `noether.ledger`,
 ## Alternatives considered
 
 - FastAPI (user's usual backend preference): rejected for this project —
-  the Care patterns being reused (EMRBaseViewSet, plug manager, RBAC
-  controllers, migrations discipline) are Django-native, and Django's ORM
-  transaction/locking semantics are load-bearing for the kernel.
-- pipenv (Care parity): rejected — slower, fading ecosystem.
+  the patterns being reused (EMRBaseViewSet-style viewsets, plug manager,
+  RBAC controllers, migrations discipline) are Django-native, and Django's
+  ORM transaction/locking semantics are load-bearing for the kernel.
+- pipenv: rejected — slower, fading ecosystem.

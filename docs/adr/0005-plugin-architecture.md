@@ -1,4 +1,4 @@
-# ADR-0005: Domain plugins as separate repos; Care-style plug manager
+# ADR-0005: Domain plugins as separate repos; plug manager
 
 - Status: Accepted
 - Date: 2026-08-27
@@ -6,9 +6,9 @@
 
 ## Context
 
-The core must stay domain-agnostic (golden rule 3). Care proves a pattern:
-a `plugs` package with a `PlugManager` that installs external Django apps
-from configuration, and controllers with plug-override hooks.
+The core must stay domain-agnostic (golden rule 3). The pattern: a `plugs`
+package with a `PlugManager` that installs external Django apps from
+configuration, and controllers with plug-override hooks.
 
 ## Decision
 
@@ -17,12 +17,11 @@ from configuration, and controllers with plug-override hooks.
    `~/projects/noether-energy` (`noether_energy`). Physically enforcing the
    boundary keeps the core honest.
 2. Core ships the plug machinery: `plugs/` package (Plug, PlugManager) +
-   `plug_config.py`, Care-style. Plugs are declared via environment
+   `plug_config.py`. Plugs are declared via environment
    (12-factor): `NOETHER_PLUGS=noether_finance,noether_energy` for local
    path/pip installs.
 3. A plug is a Django app whose `AppConfig.ready()` registers:
-   - a `DomainConfig` into the **DomainRegistry** (the Care device-registry
-     analog),
+   - a `DomainConfig` into the **DomainRegistry**,
    - permission handlers into `PermissionController`,
    - roles into `RoleController`,
    - authz handlers into `AuthorizationController`,
@@ -49,4 +48,4 @@ from configuration, and controllers with plug-override hooks.
 - In-repo `plugs/finance` extracted later: rejected — boundaries rot when
   not physically enforced.
 - Setuptools entry-points discovery: viable, but env-var declaration is
-  more 12-factor and matches Care; may add entry-points sugar later.
+  more 12-factor; may add entry-points sugar later.

@@ -27,8 +27,8 @@ Python tooling measures statement and branch coverage but not true MC/DC.
 5. **Property-based tests (hypothesis)** are required for kernel invariants:
    conservation, balance≡fold(entries), reversal round-trip,
    snapshot-replay equivalence, precision validation.
-6. Test taxonomy: `tests/unit/` (pure logic), `tests/api/` (viewset flows,
-   Care-style), `tests/properties/` (hypothesis), `tests/integration/`
+6. Test taxonomy: `tests/unit/` (pure logic), `tests/api/` (viewset flows),
+   `tests/properties/` (hypothesis), `tests/integration/`
    (Celery + Redis + Postgres flows).
 
 ## Consequences

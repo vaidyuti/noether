@@ -10,7 +10,7 @@ built on these.
 
 A registered quantity-domain, contributed by a plug (see
 `docs/domains/authoring-a-domain.md`). Rows in the `Domain` table mirror the
-in-code `DomainConfig` registry (synced by a management command, like Care's
+in-code `DomainConfig` registry (synced by a management command,
 `sync_permissions_roles`). A `Domain` row carries only: `slug`, `name`,
 `version`, `enabled`.
 

@@ -1,8 +1,7 @@
 # Security: RBAC Model
 
-Pattern lifted from Care's `security` app (PermissionController /
-RoleController / AuthorizationController), simplified to a single context:
-**the Ledger** (ADR-0004).
+RoleController / AuthorizationController pattern, simplified to a single
+context: **the Ledger** (ADR-0004).
 
 ## Model
 
@@ -15,7 +14,7 @@ LedgerUser        — (ledger, user, role) membership; unique (ledger, user)
 ```
 
 A user's capabilities in a ledger = the permissions of their role in that
-ledger. Superusers bypass (consistent with Care). Users with no membership
+ledger. Superusers bypass all checks. Users with no membership
 have no access — there is no public ledger concept in v1.
 
 ## Built-in roles
@@ -55,5 +54,5 @@ price__read, price__write
 4. Querysets are always pre-filtered to ledgers the user belongs to
    (`get_accessible_ledgers(user)`) — object-level 404, not 403 leak.
 
-Controllers keep Care's plug-override chain: plugs can register override
+Controllers support a plug-override chain: plugs can register override
 authz handlers that run before internal ones.

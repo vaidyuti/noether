@@ -26,7 +26,7 @@ noether-finance/
 │   │   └── roles.py             # extra Role definitions (optional)
 │   ├── models/                  # plug-owned tables (optional), FK to core
 │   ├── resources/               # pydantic specs for plug APIs (optional)
-│   │   └── <resource>/          # one package per resource, mirroring Care
+│   │   └── <resource>/          # one package per resource
 │   │       ├── spec.py          # CreateSpec/UpdateSpec/ReadSpec extending NoetherResource
 │   │       └── constants.py     # enums/choices for the resource (optional)
 │   ├── api/                     # extra viewsets (optional): viewsets + FilterSets + authz only
@@ -44,7 +44,7 @@ Deployments list plugs in the environment:
 NOETHER_PLUGS=noether_finance,noether_energy
 ```
 
-Core's `plug_config.py` (Care-style `PlugManager`) reads this, appends each
+Core's `plug_config.py` (`PlugManager`) reads this, appends each
 plug's app to `INSTALLED_APPS`, and merges plug settings. A plug MUST NOT
 require manual `settings.py` edits. Plug-specific config uses env vars
 prefixed with the plug slug, e.g. `NOETHER_FINANCE_PRICE_PROVIDER=…`.
