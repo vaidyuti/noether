@@ -15,6 +15,7 @@ from noether.ledger.models import (
     Ledger,
     Transaction,
     TransactionStatus,
+    Unit,
 )
 
 
@@ -84,17 +85,20 @@ def create_transaction(
 
 def _check_conservation(entries: list[Entry]) -> None:
     sums: dict[int, dict[str, Decimal]] = {}
-    units: dict[int, str] = {}
+    units: dict[int, Unit] = {}
     for entry in entries:
         unit = entry.account.unit
-        units[unit.id] = unit.symbol
+        units[unit.id] = unit
         per_unit = sums.setdefault(unit.id, {"debit": Decimal(0), "credit": Decimal(0)})
         per_unit[entry.direction] += entry.amount
     for unit_id, per_unit in sums.items():
         if per_unit["debit"] != per_unit["credit"]:
+            unit = units[unit_id]
+            quantum = Decimal(1).scaleb(-unit.precision)
+            debits = per_unit["debit"].quantize(quantum)
+            credits = per_unit["credit"].quantize(quantum)
             raise ConservationError(
-                f"unit {units[unit_id]}: debits {per_unit['debit'].normalize()} "
-                f"!= credits {per_unit['credit'].normalize()}"
+                f"unit {unit.symbol}: debits {debits} != credits {credits}"
             )
 
 

@@ -7,12 +7,15 @@ def sync_domain_rows() -> list:
     from noether.ledger.models import Domain
 
     rows = []
+    slugs = []
     for config in DomainRegistry.all():
+        slugs.append(config.slug)
         row, _ = Domain.objects.update_or_create(
             slug=config.slug,
             defaults={"name": config.name, "version": config.version, "enabled": True},
         )
         rows.append(row)
+    Domain.objects.exclude(slug__in=slugs).update(enabled=False)
     return rows
 
 

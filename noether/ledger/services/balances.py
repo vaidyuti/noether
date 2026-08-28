@@ -13,7 +13,7 @@ from noether.ledger.models import (
 )
 
 
-class ValuationUnavailableError(Exception):
+class ValuationUnavailableError(ValueError):
     """No price is known for the requested unit pair."""
 
 

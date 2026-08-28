@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass, field
 
 VALID_SLUG = re.compile(r"^[a-z0-9-]{1,32}$")
+VALID_SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 VALID_NORMAL_BALANCES = ("debit", "credit")
 
 
@@ -50,6 +51,8 @@ class DomainConfig:
     def validate(self) -> None:
         if not VALID_SLUG.match(self.slug):
             raise DomainConfigError(f"invalid domain slug: {self.slug!r}")
+        if not VALID_SEMVER.match(self.version):
+            raise DomainConfigError(f"invalid version {self.version!r} for domain {self.slug}")
         type_names = [t.name for t in self.account_types]
         if len(type_names) != len(set(type_names)):
             raise DomainConfigError(f"duplicate account type in domain {self.slug}")
