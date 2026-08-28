@@ -64,6 +64,16 @@ GET/POST      /api/v1/ledgers/{id}/prices/
                   # ?unit=&quote_unit=&as_of_before=&as_of_after=
 ```
 
+## Filtering convention
+
+List endpoints filter via **django-filter** `FilterSet` classes declared next to each
+viewset (`filterset_class` + `DjangoFilterBackend`), mirroring Care. Query param names
+above are frozen public contract. UUID params filter on `external_id` FK lookups;
+datetime params (`occurred_after/before`, `as_of_after/before`) are ISO 8601 and
+validated by the FilterSet — invalid UUID/datetime values return **400**; invalid
+boolean values (e.g. `archived=maybe`) are ignored per django-filter's BooleanFilter.
+`as_of`/`value_in` on the balance endpoint are computation params, not queryset filters.
+
 ## Status code rules for lifecycle violations
 
 - Editing/deleting a posted or reversed transaction: **409 Conflict**

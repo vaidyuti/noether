@@ -26,7 +26,10 @@ noether-finance/
 │   │   └── roles.py             # extra Role definitions (optional)
 │   ├── models/                  # plug-owned tables (optional), FK to core
 │   ├── resources/               # pydantic specs for plug APIs (optional)
-│   ├── api/                     # extra viewsets (optional)
+│   │   └── <resource>/          # one package per resource, mirroring Care
+│   │       ├── spec.py          # CreateSpec/UpdateSpec/ReadSpec extending NoetherResource
+│   │       └── constants.py     # enums/choices for the resource (optional)
+│   ├── api/                     # extra viewsets (optional): viewsets + FilterSets + authz only
 │   ├── tasks/                   # celery tasks (optional)
 │   ├── migrations/
 │   └── tests/                   # 100% coverage, same standard as core
