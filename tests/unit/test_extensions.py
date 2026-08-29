@@ -44,9 +44,11 @@ class EnvExtensionTests(SimpleTestCase):
             self.assertEqual(self.ext.validate({"anything": 1}), {"anything": 1})
 
     def test_invalid_json_raises(self):
-        with mock.patch.dict(os.environ, {WRITE_KEY: "{not json"}, clear=True):
-            with self.assertRaises(ValueError) as ctx:
-                self.ext.get_write_schema()
+        with (
+            mock.patch.dict(os.environ, {WRITE_KEY: "{not json"}, clear=True),
+            self.assertRaises(ValueError) as ctx,
+        ):
+            self.ext.get_write_schema()
         self.assertIn(WRITE_KEY, str(ctx.exception))
 
     def test_valid_schema_accepts_and_rejects(self):
