@@ -1,13 +1,13 @@
 from rest_framework.exceptions import ValidationError
 
-from noether.api.viewsets.base import NoetherModelViewSet
+from noether.api.viewsets.base import NoetherModelViewSet, NoetherUpsertMixin
 from noether.ledger.api.base import LedgerScopedMixin
 from noether.ledger.models import Unit
 from noether.ledger.resources.unit.spec import UnitReadSpec, UnitSpec, UnitUpdateSpec
 from noether.security.permissions.base import UnitPermissions
 
 
-class UnitViewSet(LedgerScopedMixin, NoetherModelViewSet):
+class UnitViewSet(LedgerScopedMixin, NoetherUpsertMixin, NoetherModelViewSet):
     database_model = Unit
     pydantic_model = UnitSpec
     pydantic_read_model = UnitReadSpec

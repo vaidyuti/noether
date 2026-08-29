@@ -30,6 +30,7 @@ CORS_ALLOWED_ORIGINS=…
 SNAPSHOT_CRON="0 2 * * *"           # balance snapshots
 INTEGRITY_VERIFY_CRON="30 2 * * *"  # conservation auditor
 INTEGRITY_ALERT_WEBHOOK=…           # optional
+MAX_DATAPOINTS_PER_UPSERT=100       # bulk upsert batch cap (ADR-0015)
 ```
 
 ## Process topology

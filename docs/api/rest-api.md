@@ -38,10 +38,12 @@ GET           /api/v1/roles/                       # built-in + plug roles
 
 # Units
 GET/POST      /api/v1/ledgers/{id}/units/
+POST          /api/v1/ledgers/{id}/units/upsert/   # bulk idempotent import (ADR-0015)
 GET/PUT/PATCH /api/v1/ledgers/{id}/units/{id}/     # precision immutable once used
 
 # Accounts
 GET/POST      /api/v1/ledgers/{id}/accounts/       # ?parent=&type=&archived=
+POST          /api/v1/ledgers/{id}/accounts/upsert/ # bulk idempotent import (ADR-0015)
 GET/PUT/PATCH /api/v1/ledgers/{id}/accounts/{id}/
 POST          /api/v1/ledgers/{id}/accounts/{id}/archive
 GET           /api/v1/ledgers/{id}/accounts/{id}/balance
@@ -62,6 +64,91 @@ POST          /api/v1/ledgers/{id}/transactions/{id}/reverse
 # Prices (valuation overlay)
 GET/POST      /api/v1/ledgers/{id}/prices/
                   # ?unit=&quote_unit=&as_of_before=&as_of_after=
+```
+
+## Bulk upsert (ADR-0015)
+
+`POST /api/v1/ledgers/{id}/<collection>/upsert/` performs an idempotent
+create-or-update over a batch of datapoints. Available on **accounts** and
+**units**. Deliberately NOT available on transactions: posted transactions are
+immutable (ADR-0001), so a bulk "update" of them is semantically wrong.
+
+### Request
+
+```json
+{"datapoints": [ {...}, {...} ]}
+```
+
+Each datapoint is the same object body the collection's `POST` (create) or
+`PUT`/`PATCH` (update) accepts.
+
+### Identity resolution
+
+| Condition | Behaviour |
+| --- | --- |
+| target model has a `slug` field and datapoint has `slug` | look up by `slug` |
+| otherwise, datapoint has `id` | look up by `id` (`external_id`) |
+| neither | create |
+| identifier present, no row matches (incl. malformed UUID) | **create** — never 404 |
+
+The slug field is feature-detected per request, so models that gain a `slug`
+later automatically switch to slug identity.
+
+### Response
+
+- **200** — every datapoint succeeded. Body is a JSON array of the rendered
+  rows, in request order.
+- **400** — at least one datapoint failed. **The entire batch is rolled back**
+  (single `transaction.atomic()`); nothing is written. The body is the same
+  positional array, with successful entries rendered and failed entries
+  carrying their error object, so the client can see exactly which rows failed.
+
+### Error semantics
+
+| Case | Result |
+| --- | --- |
+| body is not a JSON object | 400 `Invalid request body: expected an object` |
+| `datapoints` is not a list | 400 `'datapoints' must be a list` |
+| `datapoints` empty / missing | 400 `No datapoints provided` |
+| a datapoint is not an object | 400 `Each datapoint must be an object` |
+| more than `MAX_DATAPOINTS_PER_UPSERT` items (default 100, env-configurable) | 400 `Too many datapoints provided` |
+| two datapoints resolve to the same identity | 400 `Duplicate identifier in batch: ...` (nothing written) |
+| caller lacks write permission | 403-shaped `permission_denied` error inside the 400 result array; batch rolled back |
+| unexpected server error | propagates as a normal 500 — never swallowed into a 400 |
+
+Authorization runs per datapoint exactly as for single create/update: the
+mixin reuses `handle_create` / `handle_update`.
+
+### Worked example — importing a chart of accounts twice
+
+```bash
+LEDGER=8f2c...; API=http://localhost:8000/api/v1
+AUTH="$NOETHER_AUTH_HEADER"   # e.g. the standard JWT Authorization header
+
+cat > chart.json <<'EOF'
+{"datapoints": [
+  {"name": "Cash",    "account_type": "asset",   "unit": "0f1e...-unit-uuid"},
+  {"name": "Revenue", "account_type": "revenue", "unit": "0f1e...-unit-uuid"}
+]}
+EOF
+
+# First run — both rows are created
+curl -sS -X POST "$API/ledgers/$LEDGER/accounts/upsert/" \
+     -H "$AUTH" -H 'Content-Type: application/json' \
+     -d @chart.json
+# 200
+# [{"id":"aaaa-...","name":"Cash","account_type":"asset",...},
+#  {"id":"bbbb-...","name":"Revenue","account_type":"revenue",...}]
+
+# Second run — feed back the ids (or, on a model with slugs, the same slugs).
+# Both rows are UPDATED in place; no duplicates are created.
+curl -sS -X POST "$API/ledgers/$LEDGER/accounts/upsert/" \
+     -H "$AUTH" -H 'Content-Type: application/json' \
+     -d '{"datapoints": [
+           {"id": "aaaa-...", "name": "Cash"},
+           {"id": "bbbb-...", "name": "Revenue"}
+         ]}'
+# 200 — same two ids returned; GET /accounts/ still shows exactly two rows.
 ```
 
 ## Filtering convention

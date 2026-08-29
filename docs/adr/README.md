@@ -16,3 +16,4 @@ change a decision). Template: `template.md`.
 | [0009](0009-resource-package-structure.md) | Specs in resources/ packages; django-filter for list filtering | Accepted |
 | [0010](0010-normalized-balance-presentation.md) | Balances normalized by account-type normal side on all read/hook surfaces; raw stays internal | Accepted |
 | [0011](0011-plug-integration-hooks.md) | First-class plug hooks: urls in DomainConfig, create_ledger service, idempotent registration, exported LedgerScopedMixin | Accepted |
+| [0015](0015-bulk-upsert.md) | Bulk upsert: slug-or-id identity, all-or-nothing batches, transactions excluded | Accepted |
