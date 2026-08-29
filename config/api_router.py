@@ -6,6 +6,7 @@ from noether.ledger.api.ledgers import LedgerViewSet
 from noether.ledger.api.members import LedgerUserViewSet
 from noether.ledger.api.prices import UnitPriceViewSet
 from noether.ledger.api.roles import RoleViewSet
+from noether.ledger.api.tag_configs import TagConfigViewSet
 from noether.ledger.api.transactions import TransactionViewSet
 from noether.ledger.api.units import UnitViewSet
 
@@ -20,5 +21,6 @@ ledger_router.register("units", UnitViewSet, basename="ledger-units")
 ledger_router.register("accounts", AccountViewSet, basename="ledger-accounts")
 ledger_router.register("transactions", TransactionViewSet, basename="ledger-transactions")
 ledger_router.register("prices", UnitPriceViewSet, basename="ledger-prices")
+ledger_router.register("tag-configs", TagConfigViewSet, basename="ledger-tag-configs")
 
 urlpatterns = router.urls + ledger_router.urls

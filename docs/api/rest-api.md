@@ -70,6 +70,13 @@ GET/POST      /api/v1/ledgers/{id}/units/
 POST          /api/v1/ledgers/{id}/units/upsert/   # bulk idempotent import (ADR-0015)
 GET/PUT/PATCH /api/v1/ledgers/{id}/units/{id}/     # precision immutable once used
 
+# Tag configs (ADR-0013)
+GET/POST      /api/v1/ledgers/{id}/tag-configs/
+                  # POST: {display, resource, description?, status?, parent?,
+                  #        exclusive_children?, metadata?}
+GET/PUT/PATCH /api/v1/ledgers/{id}/tag-configs/{id}/
+DELETE        /api/v1/ledgers/{id}/tag-configs/{id}/   # soft delete
+
 # Accounts
 GET/POST      /api/v1/ledgers/{id}/accounts/       # ?parent=&type=&archived=
                   # POST accepts optional {slug}; {id} may be a UUID or slug
@@ -85,11 +92,18 @@ GET/POST      /api/v1/ledgers/{id}/transactions/
                   # POST body: {description, occurred_at, entries: [
                   #   {account, direction, amount, metadata?}], post?: bool}
                   # ?status=&account=&occurred_after=&occurred_before=
+                  # ?tags=<tag-uuid>[,<tag-uuid>]   # row carries ANY of them
+                  # ?tags_all=<tag-uuid>[,…]        # row carries ALL of them
 GET/PUT/PATCH /api/v1/ledgers/{id}/transactions/{id}/   # drafts only (409 otherwise)
 DELETE        /api/v1/ledgers/{id}/transactions/{id}/   # drafts only (hard delete)
 POST          /api/v1/ledgers/{id}/transactions/{id}/post
 POST          /api/v1/ledgers/{id}/transactions/{id}/reverse
                   # body: {description?, occurred_at?}
+POST          /api/v1/ledgers/{id}/transactions/{id}/set-tag
+POST          /api/v1/ledgers/{id}/transactions/{id}/unset-tag
+                  # body: {tags: [<tag-config-uuid>, …]}; allowed on POSTED
+                  # transactions (ADR-0013). 400 on unknown/duplicate/absent
+                  # tag or exclusivity conflict; 403 without tag__apply.
 
 # Prices (valuation overlay)
 GET/POST      /api/v1/ledgers/{id}/prices/

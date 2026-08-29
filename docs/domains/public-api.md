@@ -19,6 +19,11 @@ core-internal and may change without notice.
 | `noether.ledger.services.balances` | `get_balance(account, as_of=None)` (normalized), `get_raw_balance(account, as_of=None)`, `get_market_value(account, value_in, as_of=None)` | Read helpers |
 | `noether.resources.base` | `NoetherResource`, `SlugStr` | pydantic spec base for plug APIs; `SlugStr` validates slug fields |
 | `noether.api.viewsets.base` | `NoetherBaseViewSet`, `NoetherModelViewSet`, `NoetherModelReadOnlyViewSet`, `LedgerScopedMixin`, `NoetherUpsertMixin` | Plug viewsets (`NoetherUpsertMixin` adds `POST /<collection>/upsert/`, ADR-0015) |
+| `noether.tagging.models` | `TaggableMixin` | Give a plug model an ArrayField tag column (ADR-0013) |
+| `noether.tagging.base` | `BaseTagManager`, `LedgerTagManager` | Apply/remove/render tags with scope, exclusivity and authz enforced |
+| `noether.tagging.filters` | `TagFilter` | django-filter filter for a taggable queryset (`behavior="any"|"all"`) |
+| `noether.ledger.resources.tag.constants` | `TagResource`, `TagStatus` | Taggable resource-type enum and config status |
+| `noether.api.viewsets.tags` | `TagMixin` | Adds `set-tag`/`unset-tag` detail actions to a plug viewset |
 | `noether.security.permissions.base` | `PermissionController`, `PermissionHandler` | Register plug permissions |
 | `noether.security.roles.role` | `Role`, `RoleController` | Register plug roles |
 | `noether.security.authorization.base` | `AuthorizationController`, `AuthorizationHandler` | Register plug authz |
@@ -74,6 +79,36 @@ class Meter(SluggedModel, NoetherBaseModel):
 Use `SlugStr` for the spec field. Nothing else is needed: any viewset deriving
 from `NoetherBaseViewSet` will address the model by slug or UUID automatically,
 scoped by its own `get_queryset()`.
+
+## Taggable plug models (ADR-0013)
+
+Inherit `TaggableMixin` to get the denormalized `tags` ArrayField, declare the
+resource type, and mount the viewset actions:
+
+```python
+from noether.tagging.models import TaggableMixin
+from noether.api.viewsets.tags import TagMixin
+from noether.tagging.filters import TagFilter
+
+
+class Meter(TaggableMixin, NoetherBaseModel):
+    ledger = models.ForeignKey("ledger.Ledger", on_delete=models.CASCADE)
+
+
+class MeterViewSet(TagMixin, LedgerScopedMixin, NoetherModelViewSet):
+    tag_resource_type = "meter"  # matches TagConfig.resource
+
+    def authorize_tag(self, instance):
+        self.check_ledger_permission("tag__apply")
+
+
+class MeterFilters(filters.FilterSet):
+    tags = TagFilter()
+```
+
+Tag configs themselves are created against the ledger via
+`/api/v1/ledgers/{id}/tag-configs/` with `resource="meter"`. See
+`docs/concepts/05-tags.md`.
 
 ## Guarantees to plugs
 

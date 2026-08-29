@@ -44,6 +44,12 @@ class PricePermissions(enum.Enum):
     price__write = PermissionMeta("Write prices")
 
 
+class TagPermissions(enum.Enum):
+    tag__read = PermissionMeta("Read tag configs")
+    tag__write = PermissionMeta("Create/update tag configs")
+    tag__apply = PermissionMeta("Apply/remove tags on taggable resources")
+
+
 class PermissionHandler:
     pass
 
@@ -60,6 +66,7 @@ class PermissionController:
         TransactionPermissions,
         BalancePermissions,
         PricePermissions,
+        TagPermissions,
     ]
 
     cache = {}

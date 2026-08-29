@@ -35,9 +35,17 @@ class LedgerAccessHandler(AuthorizationHandler):
         return queryset.filter(memberships__user=user)
 
 
+class TagConfigAccessHandler(AuthorizationHandler):
+    def can_apply_tag_config(self, user, ledger, tag_config):
+        from noether.security.permissions.base import TagPermissions
+
+        del tag_config
+        return self.check_permission_in_ledger(TagPermissions.tag__apply.name, user, ledger)
+
+
 class AuthorizationController:
     override_authz_controllers: list = []
-    internal_controllers: list = [LedgerAccessHandler]
+    internal_controllers: list = [LedgerAccessHandler, TagConfigAccessHandler]
 
     cache = {}
 

@@ -5,6 +5,7 @@ from noether.security.permissions.base import (
     BalancePermissions,
     PermissionController,
     PricePermissions,
+    TagPermissions,
     TransactionPermissions,
     UnitPermissions,
 )
@@ -45,6 +46,8 @@ BOOKKEEPER_ROLE = Role(
         TransactionPermissions.transaction__reverse.name,
         TransactionPermissions.transaction__delete.name,
         PricePermissions.price__write.name,
+        TagPermissions.tag__write.name,
+        TagPermissions.tag__apply.name,
     ),
 )
 

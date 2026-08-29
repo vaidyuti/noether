@@ -62,11 +62,15 @@ class TransactionReadSpec(ExtensionListRenderer, NoetherResource):
     reversed_by: UUID4 | None = None
     metadata: dict = {}
     entries: list[dict] = []
+    tags: list[dict] = []
     created_date: datetime.datetime | None = None
 
     @classmethod
     def perform_extra_serialization(cls, mapping, obj):
+        from noether.tagging.base import LedgerTagManager
+
         super().perform_extra_serialization(mapping, obj)
+        mapping["tags"] = LedgerTagManager(obj.ledger).render_tags(obj)
         mapping["reverses"] = obj.reverses.external_id if obj.reverses_id else None
         mapping["reversed_by"] = obj.reversed_by.external_id if obj.reversed_by_id else None
         mapping["entries"] = [

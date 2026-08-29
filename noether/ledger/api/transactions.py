@@ -4,9 +4,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from noether.api.viewsets.base import NoetherModelViewSet
+from noether.api.viewsets.tags import TagMixin
 from noether.ledger.api.base import LedgerScopedMixin
 from noether.ledger.exceptions import ImmutabilityError
 from noether.ledger.models import Account, Transaction
+from noether.ledger.resources.tag.constants import TagResource
 from noether.ledger.resources.transaction.constants import TransactionStatus
 from noether.ledger.resources.transaction.spec import (
     ReverseSpec,
@@ -21,7 +23,8 @@ from noether.ledger.services.posting import (
     post_transaction,
     reverse_transaction,
 )
-from noether.security.permissions.base import TransactionPermissions
+from noether.security.permissions.base import TagPermissions, TransactionPermissions
+from noether.tagging.filters import TagFilter
 
 
 class TransactionFilters(filters.FilterSet):
@@ -29,12 +32,14 @@ class TransactionFilters(filters.FilterSet):
     account = filters.UUIDFilter(method="filter_account")
     occurred_after = filters.IsoDateTimeFilter(field_name="occurred_at", lookup_expr="gt")
     occurred_before = filters.IsoDateTimeFilter(field_name="occurred_at", lookup_expr="lt")
+    tags = TagFilter()
+    tags_all = TagFilter(behavior="all")
 
     def filter_account(self, queryset, name, value):
         return queryset.filter(entries__account__external_id=value).distinct()
 
 
-class TransactionViewSet(LedgerScopedMixin, NoetherModelViewSet):
+class TransactionViewSet(TagMixin, LedgerScopedMixin, NoetherModelViewSet):
     database_model = Transaction
     pydantic_model = TransactionCreateSpec
     pydantic_read_model = TransactionReadSpec
@@ -42,6 +47,10 @@ class TransactionViewSet(LedgerScopedMixin, NoetherModelViewSet):
     pydantic_retrieve_model = TransactionRetrieveSpec
     filterset_class = TransactionFilters
     filter_backends = [filters.DjangoFilterBackend]
+    tag_resource_type = TagResource.transaction
+
+    def authorize_tag(self, instance):
+        self.check_ledger_permission(TagPermissions.tag__apply.name)
 
     def get_queryset(self):
         return Transaction.objects.filter(ledger=self.get_ledger(), deleted=False).order_by("-id")
