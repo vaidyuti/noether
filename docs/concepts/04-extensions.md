@@ -75,15 +75,15 @@ class ExtensionBase:
     resource_type: ExtensionResource | None
     extension_name: str
     extension_version: str
-    extension_owner: ExtensionOwner    # core | plug
+    extension_owner: ExtensionOwner  # core | plug
 
     write_schema: dict
-    read_schema: dict        # falls back to write_schema
-    retrieve_schema: dict    # falls back to read_schema
+    read_schema: dict  # falls back to write_schema
+    retrieve_schema: dict  # falls back to read_schema
 
-    def validate(self, data, resource=None): ...          # write: raise ValueError to reject
+    def validate(self, data, resource=None): ...  # write: raise ValueError to reject
     def serialize_extensions(self, data, resource=None): ...  # write: normalize before persist
-    def deserialize_extensions_list(self, data, resource): ...      # read: list rendering
+    def deserialize_extensions_list(self, data, resource): ...  # read: list rendering
     def deserialize_extensions_retrieve(self, data, resource): ...  # read: retrieve rendering
 ```
 
@@ -182,7 +182,7 @@ class DemoAccountExtension(PlugExtension):
     }
 
     def validate(self, data, resource=None):
-        super().validate(data, resource)          # JSON Schema first
+        super().validate(data, resource)  # JSON Schema first
         if data.get("label", "").strip() == "forbidden":
             raise ValueError("label 'forbidden' is not allowed")
         return data
