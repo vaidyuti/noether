@@ -38,6 +38,7 @@ class LedgerViewSet(NoetherModelViewSet):
                 owner=self.request.user,
                 chart_template=instance.chart_template,
                 description=instance.description,
+                slug=instance.slug,
             )
         except DomainConfigError as exc:
             raise ValidationError(str(exc)) from exc

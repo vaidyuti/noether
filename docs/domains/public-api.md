@@ -14,9 +14,10 @@ core-internal and may change without notice.
 | `noether.domains.valuation` | `ValuationStrategy`, `PriceQuote` | Price feed hook base |
 | `noether.ledger.exceptions` | `DomainValidationError`, `ConservationError`, `ImmutabilityError` | Raise/catch |
 | `noether.ledger.models` | `Domain`, `Ledger`, `Unit`, `Account`, `Transaction`, `Entry`, `AccountBalance`, `UnitPrice` | FK targets & read access |
+| `noether.ledger.models_base` | `SluggedModel`, `validate_slug`, `SLUG_PATTERN`, `SLUG_MAX_LENGTH`, `slug_or_uuid_filters` | Give a plug model a scope-unique slug (ADR-0014) |
 | `noether.ledger.services.posting` | `create_transaction(...)`, `post_transaction(...)`, `reverse_transaction(...)` | THE only write path to the ledger |
 | `noether.ledger.services.balances` | `get_balance(account, as_of=None)` (normalized), `get_raw_balance(account, as_of=None)`, `get_market_value(account, value_in, as_of=None)` | Read helpers |
-| `noether.resources.base` | `NoetherResource` | pydantic spec base for plug APIs |
+| `noether.resources.base` | `NoetherResource`, `SlugStr` | pydantic spec base for plug APIs; `SlugStr` validates slug fields |
 | `noether.api.viewsets.base` | `NoetherBaseViewSet`, `NoetherModelViewSet`, `NoetherModelReadOnlyViewSet`, `LedgerScopedMixin` | Plug viewsets |
 | `noether.security.permissions.base` | `PermissionController`, `PermissionHandler` | Register plug permissions |
 | `noether.security.roles.role` | `Role`, `RoleController` | Register plug roles |
@@ -50,6 +51,29 @@ def reverse_transaction(
     occurred_at: datetime | None = None,
 ) -> Transaction: ...  # returns the posted mirror transaction
 ```
+
+## Slugged plug models (ADR-0014)
+
+Inherit `SluggedModel`, declare the uniqueness scope, and add the matching
+constraint. An empty scope means globally unique.
+
+```python
+from noether.ledger.models_base import SluggedModel
+
+
+class Meter(SluggedModel, NoetherBaseModel):
+    SLUG_SCOPE_FIELDS = ("ledger",)
+    ledger = models.ForeignKey("ledger.Ledger", on_delete=models.CASCADE)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["ledger", "slug"], name="unique_meter_slug"),
+        ]
+```
+
+Use `SlugStr` for the spec field. Nothing else is needed: any viewset deriving
+from `NoetherBaseViewSet` will address the model by slug or UUID automatically,
+scoped by its own `get_queryset()`.
 
 ## Guarantees to plugs
 

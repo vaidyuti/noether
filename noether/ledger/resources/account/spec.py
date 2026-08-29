@@ -3,12 +3,13 @@ import datetime
 from pydantic import UUID4
 
 from noether.ledger.models import Account
-from noether.resources.base import NoetherResource
+from noether.resources.base import NoetherResource, SlugStr
 
 
 class AccountSpec(NoetherResource):
     __model__ = Account
     name: str
+    slug: SlugStr | None = None
     account_type: str
     unit: UUID4
     parent: UUID4 | None = None
@@ -23,6 +24,7 @@ class AccountSpec(NoetherResource):
 class AccountUpdateSpec(NoetherResource):
     __model__ = Account
     name: str | None = None
+    slug: SlugStr | None = None
     metadata: dict | None = None
 
 
@@ -30,6 +32,7 @@ class AccountReadSpec(NoetherResource):
     __model__ = Account
     id: UUID4 | None = None
     name: str = ""
+    slug: str | None = None
     account_type: str = ""
     unit: str | None = None
     parent: UUID4 | None = None

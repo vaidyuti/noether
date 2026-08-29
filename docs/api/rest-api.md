@@ -2,7 +2,36 @@
 
 Base path: `/api/v1/`. JWT auth (`Authorization: Bearer …`). OpenAPI at
 `/api/schema/` (drf-spectacular). All resources addressed by `external_id`
-(UUID). Nested routing under ledgers via drf-nested-routers.
+(UUID), and slugged resources additionally by `slug`. Nested routing under
+ledgers via drf-nested-routers.
+
+## Addressing
+
+Every detail route accepts **either** the resource's `external_id` (UUID) or,
+for slugged resources, its `slug`. Resolution happens once, in the shared
+viewset base (`NoetherBaseViewSet.get_object` / `LedgerScopedMixin.get_ledger`):
+
+1. path segment parses as a UUID → `external_id` lookup;
+2. otherwise, if the model is a `SluggedModel` → `slug` lookup, scoped by the
+   viewset's already-narrowed queryset;
+3. otherwise → 404 `object_not_found`.
+
+Slugged today: `Ledger` (globally unique slug) and `Account` (slug unique
+within its ledger). `Unit` is addressed by UUID (its `symbol` is a separate
+per-ledger handle used in payloads, not in paths); `Transaction` has no slug.
+
+```bash
+GET /api/v1/ledgers/my-ledger/accounts/cash-in-hand/     # slug + slug
+GET /api/v1/ledgers/9f1c…/accounts/3ab7…/                 # UUID + UUID
+GET /api/v1/ledgers/my-ledger/accounts/3ab7…/balance      # mixed is fine
+```
+
+Slugs are optional on create (omit → `null`; never auto-generated) and mutable
+via PATCH — renaming is a client-visible identity change that breaks importers
+keyed on the old slug. A duplicate slug within its scope returns **400**
+(`{"type": "validation_error", "msg": "slug '…' is already taken in this scope"}`);
+a malformed slug returns **400** with the pydantic error shape. Full rules:
+`docs/concepts/06-slugs.md`, ADR-0014.
 
 ## Conventions
 
@@ -27,7 +56,7 @@ GET  /api/v1/domains/                    # registered domains
 GET  /api/v1/domains/{slug}/             # incl. account_types, chart templates
 
 # Ledgers
-GET/POST      /api/v1/ledgers/           # POST: {domain, name, chart_template?}
+GET/POST      /api/v1/ledgers/           # POST: {domain, name, slug?, chart_template?}
 GET/PUT/PATCH /api/v1/ledgers/{id}/
 DELETE        /api/v1/ledgers/{id}/      # soft delete; Owner only
 
@@ -42,6 +71,7 @@ GET/PUT/PATCH /api/v1/ledgers/{id}/units/{id}/     # precision immutable once us
 
 # Accounts
 GET/POST      /api/v1/ledgers/{id}/accounts/       # ?parent=&type=&archived=
+                  # POST accepts optional {slug}; {id} may be a UUID or slug
 GET/PUT/PATCH /api/v1/ledgers/{id}/accounts/{id}/
 POST          /api/v1/ledgers/{id}/accounts/{id}/archive
 GET           /api/v1/ledgers/{id}/accounts/{id}/balance
