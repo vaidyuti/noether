@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from noether.api.viewsets.base import NoetherModelViewSet
+from noether.api.viewsets.base import NoetherModelViewSet, NoetherUpsertMixin
 from noether.domains.registry import DomainRegistry
 from noether.ledger.api.base import LedgerScopedMixin
 from noether.ledger.models import Account, Unit
@@ -34,7 +34,7 @@ class AccountFilters(filters.FilterSet):
     archived = filters.BooleanFilter(field_name="archived")
 
 
-class AccountViewSet(LedgerScopedMixin, NoetherModelViewSet):
+class AccountViewSet(LedgerScopedMixin, NoetherUpsertMixin, NoetherModelViewSet):
     database_model = Account
     pydantic_model = AccountSpec
     pydantic_read_model = AccountReadSpec

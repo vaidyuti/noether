@@ -1,10 +1,13 @@
 import json
 
+from django.conf import settings
+from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.http.response import Http404
 from pydantic import ValidationError
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as RestFrameworkValidationError
 from rest_framework.fields import get_error_detail
 from rest_framework.pagination import LimitOffsetPagination
@@ -172,6 +175,101 @@ class NoetherDestroyMixin:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class _BatchRollback(Exception):
+    """Internal signal: unwind the batch transaction after collecting errors."""
+
+
+class NoetherUpsertMixin:
+    """Idempotent bulk create-or-update over a batch of datapoints.
+
+    Identity rule: a datapoint identifies an existing row by ``slug`` when the
+    target model actually has a ``slug`` field; otherwise by ``id``
+    (``external_id``). No identifier -> create. Identifier present but no row
+    matches -> create (never 404), which is what makes re-import idempotent.
+    """
+
+    def model_has_slug_field(self):
+        try:
+            self.database_model._meta.get_field("slug")
+        except FieldDoesNotExist:
+            return False
+        return True
+
+    def resolve_identity(self, datapoint):
+        """Return ``(lookup_field, value)`` or ``None`` when this is a create."""
+        if self.model_has_slug_field() and "slug" in datapoint:
+            return ("slug", datapoint["slug"])
+        if "id" in datapoint:
+            return ("external_id", datapoint["id"])
+        return None
+
+    def get_upsert_instance(self, identity):
+        if identity is None:
+            return None
+        field, value = identity
+        try:
+            return self.get_queryset().filter(**{field: value}).first()
+        except (DjangoValidationError, ValueError):
+            return None
+
+    def validate_upsert_batch(self, request_data):
+        if not isinstance(request_data, dict):
+            raise RestFrameworkValidationError("Invalid request body: expected an object")
+        datapoints = request_data.get("datapoints", [])
+        if not isinstance(datapoints, list):
+            raise RestFrameworkValidationError("'datapoints' must be a list")
+        if len(datapoints) == 0:
+            raise RestFrameworkValidationError("No datapoints provided")
+        if len(datapoints) > settings.MAX_DATAPOINTS_PER_UPSERT:
+            raise RestFrameworkValidationError(
+                f"Too many datapoints provided (max {settings.MAX_DATAPOINTS_PER_UPSERT})"
+            )
+        seen = set()
+        identities = []
+        for datapoint in datapoints:
+            if not isinstance(datapoint, dict):
+                raise RestFrameworkValidationError("Each datapoint must be an object")
+            identity = self.resolve_identity(datapoint)
+            if identity is not None:
+                if identity in seen:
+                    raise RestFrameworkValidationError(
+                        f"Duplicate identifier in batch: {identity[0]}={identity[1]}"
+                    )
+                seen.add(identity)
+            identities.append(identity)
+        return datapoints, identities
+
+    @action(detail=False, methods=["POST"])
+    def upsert(self, request, *args, **kwargs):
+        datapoints, identities = self.validate_upsert_batch(request.data)
+        results = []
+        errored = False
+        unhandled = False
+        try:
+            with transaction.atomic():
+                for datapoint, identity in zip(datapoints, identities, strict=True):
+                    try:
+                        instance = self.get_upsert_instance(identity)
+                        if instance is None:
+                            results.append(self.handle_create(datapoint))
+                        else:
+                            results.append(self.handle_update(instance, datapoint))
+                    except Exception as exc:
+                        errored = True
+                        handled = noether_exception_handler(exc, {})
+                        if handled is None:
+                            unhandled = True
+                            raise
+                        results.append(handled.data)
+                if errored:
+                    raise _BatchRollback
+        except Exception as exc:
+            if unhandled:
+                raise exc
+            return Response(results, status=status.HTTP_400_BAD_REQUEST)
+        return Response(results)
+
+
 class NoetherBaseViewSet(GenericViewSet):
     pydantic_model = None
     pydantic_read_model = None
@@ -245,5 +343,6 @@ __all__ = [
     "NoetherModelReadOnlyViewSet",
     "NoetherModelViewSet",
     "NoetherPagination",
+    "NoetherUpsertMixin",
     "noether_exception_handler",
 ]

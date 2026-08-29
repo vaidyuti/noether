@@ -18,7 +18,7 @@ core-internal and may change without notice.
 | `noether.ledger.services.posting` | `create_transaction(...)`, `post_transaction(...)`, `reverse_transaction(...)` | THE only write path to the ledger |
 | `noether.ledger.services.balances` | `get_balance(account, as_of=None)` (normalized), `get_raw_balance(account, as_of=None)`, `get_market_value(account, value_in, as_of=None)` | Read helpers |
 | `noether.resources.base` | `NoetherResource`, `SlugStr` | pydantic spec base for plug APIs; `SlugStr` validates slug fields |
-| `noether.api.viewsets.base` | `NoetherBaseViewSet`, `NoetherModelViewSet`, `NoetherModelReadOnlyViewSet`, `LedgerScopedMixin` | Plug viewsets |
+| `noether.api.viewsets.base` | `NoetherBaseViewSet`, `NoetherModelViewSet`, `NoetherModelReadOnlyViewSet`, `LedgerScopedMixin`, `NoetherUpsertMixin` | Plug viewsets (`NoetherUpsertMixin` adds `POST /<collection>/upsert/`, ADR-0015) |
 | `noether.security.permissions.base` | `PermissionController`, `PermissionHandler` | Register plug permissions |
 | `noether.security.roles.role` | `Role`, `RoleController` | Register plug roles |
 | `noether.security.authorization.base` | `AuthorizationController`, `AuthorizationHandler` | Register plug authz |
