@@ -41,7 +41,7 @@ Naming: Django project package `noether`, core apps `noether.ledger`,
 ## Alternatives considered
 
 - FastAPI (user's usual backend preference): rejected for this project —
-  the patterns being reused (EMRBaseViewSet-style viewsets, plug manager,
+  the patterns being reused (spec-driven base viewsets, plug manager,
   RBAC controllers, migrations discipline) are Django-native, and Django's
   ORM transaction/locking semantics are load-bearing for the kernel.
 - pipenv: rejected — slower, fading ecosystem.
