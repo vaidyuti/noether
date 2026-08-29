@@ -17,6 +17,7 @@ from noether.ledger.exceptions import (
     DomainValidationError,
     ImmutabilityError,
 )
+from noether.ledger.models_base import slug_or_uuid_filters
 from noether.security.authorization.base import PermissionDeniedError
 
 
@@ -202,9 +203,18 @@ class NoetherBaseViewSet(GenericViewSet):
         return self.pydantic_model
 
     def get_object(self):
+        """Resolve the URL lookup value as a UUID external_id, else as a slug.
+
+        Slug resolution is scoped automatically: ``get_queryset()`` is already
+        narrowed to the viewset's scope (e.g. one ledger), so a slug lookup can
+        never cross that boundary.
+        """
         queryset = self.get_queryset()
+        filters = slug_or_uuid_filters(self.database_model, self.kwargs[self.lookup_field])
+        if filters is None:
+            raise Http404("Object not found")
         try:
-            return queryset.get(**{self.lookup_field: self.kwargs[self.lookup_field]})
+            return queryset.get(**filters)
         except (self.database_model.DoesNotExist, DjangoValidationError, ValueError) as exc:
             raise Http404 from exc
 

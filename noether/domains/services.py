@@ -1,7 +1,9 @@
 from noether.domains.config import ChartTemplate, DomainConfig, DomainConfigError
 
 
-def create_ledger(*, domain_slug: str, name: str, owner, chart_template=None, description=""):
+def create_ledger(
+    *, domain_slug: str, name: str, owner, chart_template=None, description="", slug=None
+):
     """Create a ledger programmatically, mirroring the REST creation path."""
     from noether.domains.registry import DomainRegistry
     from noether.ledger.models import Domain, Ledger
@@ -21,6 +23,7 @@ def create_ledger(*, domain_slug: str, name: str, owner, chart_template=None, de
     ledger = Ledger.objects.create(
         domain=domain_row,
         name=name,
+        slug=slug,
         description=description,
         created_by=owner,
         updated_by=owner,

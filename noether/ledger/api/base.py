@@ -1,5 +1,6 @@
 from django.http import Http404
 
+from noether.ledger.models_base import slug_or_uuid_filters
 from noether.security.authorization.base import AuthorizationController, PermissionDeniedError
 
 
@@ -8,9 +9,12 @@ class LedgerScopedMixin:
 
     def get_ledger(self):
         if not hasattr(self, "_ledger"):
+            from noether.ledger.models import Ledger
+
             queryset = AuthorizationController.call("get_accessible_ledgers", self.request.user)
+            filters = slug_or_uuid_filters(Ledger, self.kwargs["ledger_external_id"])
             try:
-                self._ledger = queryset.get(external_id=self.kwargs["ledger_external_id"])
+                self._ledger = queryset.get(**filters)
             except Exception as exc:
                 raise Http404 from exc
         return self._ledger

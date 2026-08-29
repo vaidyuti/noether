@@ -1,5 +1,12 @@
+from typing import Annotated
+
 from django.db import models
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from noether.ledger.models_base import SLUG_MAX_LENGTH, SLUG_PATTERN
+
+#: pydantic field type for slugs: same grammar as the model-level validator.
+SlugStr = Annotated[str, Field(pattern=SLUG_PATTERN, max_length=SLUG_MAX_LENGTH)]
 
 
 class NoetherResource(BaseModel):

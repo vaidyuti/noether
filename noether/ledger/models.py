@@ -1,7 +1,7 @@
 from django.db import models
 
 from noether.ledger.exceptions import ImmutabilityError
-from noether.ledger.models_base import NoetherBaseModel
+from noether.ledger.models_base import NoetherBaseModel, SluggedModel
 
 
 class TransactionStatus(models.TextChoices):
@@ -22,11 +22,18 @@ class Domain(NoetherBaseModel):
     enabled = models.BooleanField(default=True)
 
 
-class Ledger(NoetherBaseModel):
+class Ledger(SluggedModel, NoetherBaseModel):
+    SLUG_SCOPE_FIELDS = ()
+
     domain = models.ForeignKey(Domain, on_delete=models.PROTECT, related_name="ledgers")
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     settings = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["slug"], name="unique_ledger_slug"),
+        ]
 
 
 class Unit(NoetherBaseModel):
@@ -42,7 +49,9 @@ class Unit(NoetherBaseModel):
         ]
 
 
-class Account(NoetherBaseModel):
+class Account(SluggedModel, NoetherBaseModel):
+    SLUG_SCOPE_FIELDS = ("ledger",)
+
     ledger = models.ForeignKey(Ledger, on_delete=models.CASCADE, related_name="accounts")
     parent = models.ForeignKey(
         "self", on_delete=models.PROTECT, null=True, blank=True, related_name="children"
@@ -53,6 +62,13 @@ class Account(NoetherBaseModel):
     is_placeholder = models.BooleanField(default=False)
     archived = models.BooleanField(default=False)
     metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["ledger", "slug"], name="unique_account_slug_per_ledger"
+            ),
+        ]
 
 
 class Transaction(NoetherBaseModel):
