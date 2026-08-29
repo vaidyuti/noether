@@ -6,3 +6,6 @@ __pycache__/
 htmlcov/
 staticfiles/
 db.sqlite3
+
+# Graphify's outputs
+graphify-out/
