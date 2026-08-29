@@ -7,6 +7,7 @@ from noether.ledger.models import Ledger
 from noether.ledger.resources.ledger.spec import (
     LedgerCreateSpec,
     LedgerReadSpec,
+    LedgerRetrieveSpec,
     LedgerUpdateSpec,
 )
 from noether.security.authorization.base import AuthorizationController, PermissionDeniedError
@@ -18,6 +19,7 @@ class LedgerViewSet(NoetherModelViewSet):
     pydantic_model = LedgerCreateSpec
     pydantic_read_model = LedgerReadSpec
     pydantic_update_model = LedgerUpdateSpec
+    pydantic_retrieve_model = LedgerRetrieveSpec
 
     def get_queryset(self):
         return (
@@ -42,7 +44,8 @@ class LedgerViewSet(NoetherModelViewSet):
         except DomainConfigError as exc:
             raise ValidationError(str(exc)) from exc
         ledger.settings = instance.settings
-        ledger.save(update_fields=["settings", "modified_date"])
+        ledger.extensions = instance.extensions
+        ledger.save(update_fields=["settings", "extensions", "modified_date"])
         return self.get_retrieve_pydantic_model().serialize(ledger).to_json()
 
     def _check(self, permission):

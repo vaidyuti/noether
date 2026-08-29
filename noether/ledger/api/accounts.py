@@ -12,6 +12,7 @@ from noether.ledger.api.base import LedgerScopedMixin
 from noether.ledger.models import Account, Unit
 from noether.ledger.resources.account.spec import (
     AccountReadSpec,
+    AccountRetrieveSpec,
     AccountSpec,
     AccountUpdateSpec,
 )
@@ -39,6 +40,7 @@ class AccountViewSet(LedgerScopedMixin, NoetherModelViewSet):
     pydantic_model = AccountSpec
     pydantic_read_model = AccountReadSpec
     pydantic_update_model = AccountUpdateSpec
+    pydantic_retrieve_model = AccountRetrieveSpec
     filterset_class = AccountFilters
     filter_backends = [filters.DjangoFilterBackend]
 

@@ -2,12 +2,19 @@ import datetime
 
 from pydantic import UUID4
 
+from noether.extensions.base import ExtensionResource
+from noether.extensions.validator import (
+    ExtensionListRenderer,
+    ExtensionRetrieveRenderer,
+    ExtensionValidator,
+)
 from noether.ledger.models import Account
 from noether.resources.base import NoetherResource
 
 
-class AccountSpec(NoetherResource):
+class AccountSpec(ExtensionValidator, NoetherResource):
     __model__ = Account
+    __extension_resource__ = ExtensionResource.account
     name: str
     account_type: str
     unit: UUID4
@@ -20,14 +27,16 @@ class AccountSpec(NoetherResource):
         obj.parent = self._parent_row
 
 
-class AccountUpdateSpec(NoetherResource):
+class AccountUpdateSpec(ExtensionValidator, NoetherResource):
     __model__ = Account
+    __extension_resource__ = ExtensionResource.account
     name: str | None = None
     metadata: dict | None = None
 
 
-class AccountReadSpec(NoetherResource):
+class AccountReadSpec(ExtensionListRenderer, NoetherResource):
     __model__ = Account
+    __extension_resource__ = ExtensionResource.account
     id: UUID4 | None = None
     name: str = ""
     account_type: str = ""
@@ -43,3 +52,7 @@ class AccountReadSpec(NoetherResource):
         super().perform_extra_serialization(mapping, obj)
         mapping["unit"] = obj.unit.symbol
         mapping["parent"] = obj.parent.external_id if obj.parent_id else None
+
+
+class AccountRetrieveSpec(ExtensionRetrieveRenderer, AccountReadSpec):
+    pass

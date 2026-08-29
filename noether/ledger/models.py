@@ -27,6 +27,7 @@ class Ledger(NoetherBaseModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     settings = models.JSONField(default=dict, blank=True)
+    extensions = models.JSONField(default=dict, blank=True)
 
 
 class Unit(NoetherBaseModel):
@@ -53,6 +54,7 @@ class Account(NoetherBaseModel):
     is_placeholder = models.BooleanField(default=False)
     archived = models.BooleanField(default=False)
     metadata = models.JSONField(default=dict, blank=True)
+    extensions = models.JSONField(default=dict, blank=True)
 
 
 class Transaction(NoetherBaseModel):
@@ -70,6 +72,7 @@ class Transaction(NoetherBaseModel):
         "self", on_delete=models.PROTECT, null=True, blank=True, related_name="+"
     )
     metadata = models.JSONField(default=dict, blank=True)
+    extensions = models.JSONField(default=dict, blank=True)
 
     ALLOWED_POSTED_TRANSITIONS = frozenset(["reversed_by", "status", "modified_date", "updated_by"])
 
