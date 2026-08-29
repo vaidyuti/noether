@@ -3,6 +3,12 @@ from decimal import Decimal
 
 from pydantic import UUID4, BaseModel, field_validator
 
+from noether.extensions.base import ExtensionResource
+from noether.extensions.validator import (
+    ExtensionListRenderer,
+    ExtensionRetrieveRenderer,
+    ExtensionValidator,
+)
 from noether.ledger.models import Transaction
 from noether.ledger.resources.transaction.constants import EntryDirection
 from noether.resources.base import NoetherResource
@@ -22,7 +28,8 @@ class EntrySpec(BaseModel):
         return value
 
 
-class TransactionCreateSpec(BaseModel):
+class TransactionCreateSpec(ExtensionValidator, BaseModel):
+    __extension_resource__ = ExtensionResource.transaction
     description: str = ""
     occurred_at: datetime.datetime
     entries: list[EntrySpec]
@@ -30,8 +37,9 @@ class TransactionCreateSpec(BaseModel):
     post: bool = False
 
 
-class TransactionUpdateSpec(NoetherResource):
+class TransactionUpdateSpec(ExtensionValidator, NoetherResource):
     __model__ = Transaction
+    __extension_resource__ = ExtensionResource.transaction
     description: str | None = None
     occurred_at: datetime.datetime | None = None
     metadata: dict | None = None
@@ -42,8 +50,9 @@ class ReverseSpec(BaseModel):
     occurred_at: datetime.datetime | None = None
 
 
-class TransactionReadSpec(NoetherResource):
+class TransactionReadSpec(ExtensionListRenderer, NoetherResource):
     __model__ = Transaction
+    __extension_resource__ = ExtensionResource.transaction
     id: UUID4 | None = None
     status: str = ""
     description: str = ""
@@ -70,3 +79,7 @@ class TransactionReadSpec(NoetherResource):
             }
             for entry in obj.entries.select_related("account").order_by("id")
         ]
+
+
+class TransactionRetrieveSpec(ExtensionRetrieveRenderer, TransactionReadSpec):
+    pass

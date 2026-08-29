@@ -12,6 +12,7 @@ from noether.ledger.resources.transaction.spec import (
     ReverseSpec,
     TransactionCreateSpec,
     TransactionReadSpec,
+    TransactionRetrieveSpec,
     TransactionUpdateSpec,
 )
 from noether.ledger.services.posting import (
@@ -38,6 +39,7 @@ class TransactionViewSet(LedgerScopedMixin, NoetherModelViewSet):
     pydantic_model = TransactionCreateSpec
     pydantic_read_model = TransactionReadSpec
     pydantic_update_model = TransactionUpdateSpec
+    pydantic_retrieve_model = TransactionRetrieveSpec
     filterset_class = TransactionFilters
     filter_backends = [filters.DjangoFilterBackend]
 
@@ -83,6 +85,9 @@ class TransactionViewSet(LedgerScopedMixin, NoetherModelViewSet):
             metadata=spec.metadata,
             created_by=request.user,
         )
+        if spec.extensions:
+            txn.extensions = spec.extensions
+            txn.save(update_fields=["extensions", "modified_date"])
         if spec.post:
             txn = post_transaction(transaction=txn, posted_by=request.user)
         return Response(TransactionReadSpec.serialize(txn).to_json(), status=201)
