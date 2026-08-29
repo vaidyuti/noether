@@ -2,11 +2,11 @@
 
 import datetime
 
-from pydantic import UUID4, BaseModel
+from pydantic import BaseModel
 
 from noether.ledger.models import TagConfig
 from noether.ledger.resources.tag.constants import TagResource, TagStatus
-from noether.resources.base import NoetherResource
+from noether.resources.base import ExternalId, NoetherResource
 
 
 class TagConfigWriteSpec(NoetherResource):
@@ -15,7 +15,7 @@ class TagConfigWriteSpec(NoetherResource):
     description: str = ""
     status: TagStatus = TagStatus.active
     resource: TagResource
-    parent: UUID4 | None = None
+    parent: ExternalId | None = None
     exclusive_children: bool = False
     metadata: dict = {}
 
@@ -34,7 +34,7 @@ class TagConfigUpdateSpec(NoetherResource):
 
 class TagConfigReadSpec(NoetherResource):
     __model__ = TagConfig
-    id: UUID4 | None = None
+    id: ExternalId | None = None
     display: str = ""
     description: str = ""
     status: str = ""
@@ -53,4 +53,4 @@ class TagConfigReadSpec(NoetherResource):
 
 
 class TagRequest(BaseModel):
-    tags: list[UUID4]
+    tags: list[ExternalId]

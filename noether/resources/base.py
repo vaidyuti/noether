@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from django.db import models
@@ -8,9 +9,16 @@ from noether.ledger.models_base import SLUG_MAX_LENGTH, SLUG_PATTERN
 #: pydantic field type for slugs: same grammar as the model-level validator.
 SlugStr = Annotated[str, Field(pattern=SLUG_PATTERN, max_length=SLUG_MAX_LENGTH)]
 
+#: pydantic field type for an ``external_id``.
+#:
+#: Deliberately version-agnostic. The core mints UUIDv7 (ADR-0016) but ids are
+#: opaque on the wire: a client that supplies its own must not be rejected for
+#: choosing a different UUID version, and historical v4 ids stay addressable.
+ExternalId = uuid.UUID
+
 
 class NoetherResource(BaseModel):
-    """pydantic v2 spec base for API resources, minus questionnaire baggage."""
+    """pydantic v2 spec base for API resources"""
 
     __model__ = None
     __exclude__: list[str] = []

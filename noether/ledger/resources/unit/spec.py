@@ -1,9 +1,7 @@
 import datetime
 
-from pydantic import UUID4
-
 from noether.ledger.models import Unit
-from noether.resources.base import NoetherResource
+from noether.resources.base import ExternalId, NoetherResource
 
 
 class UnitSpec(NoetherResource):
@@ -22,7 +20,7 @@ class UnitUpdateSpec(NoetherResource):
 
 class UnitReadSpec(NoetherResource):
     __model__ = Unit
-    id: UUID4 | None = None
+    id: ExternalId | None = None
     symbol: str = ""
     name: str = ""
     precision: int = 2

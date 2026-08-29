@@ -2,9 +2,20 @@ from noether.domains.config import ChartTemplate, DomainConfig, DomainConfigErro
 
 
 def create_ledger(
-    *, domain_slug: str, name: str, owner, chart_template=None, description="", slug=None
+    *,
+    domain_slug: str,
+    name: str,
+    owner,
+    chart_template=None,
+    description="",
+    slug=None,
+    external_id=None,
 ):
-    """Create a ledger programmatically, mirroring the REST creation path."""
+    """Create a ledger programmatically, mirroring the REST creation path.
+
+    ``external_id`` lets the caller supply the identifier (ADR-0016); omitted,
+    one is minted.
+    """
     from noether.domains.registry import DomainRegistry
     from noether.ledger.models import Domain, Ledger
     from noether.security.models import LedgerUser
@@ -20,6 +31,9 @@ def create_ledger(
         template = next((t for t in config.chart_templates if t.name == chart_template), None)
         if template is None:
             raise DomainConfigError(f"unknown chart template {chart_template!r}")
+    ledger_fields = {}
+    if external_id is not None:
+        ledger_fields["external_id"] = external_id
     ledger = Ledger.objects.create(
         domain=domain_row,
         name=name,
@@ -27,6 +41,7 @@ def create_ledger(
         description=description,
         created_by=owner,
         updated_by=owner,
+        **ledger_fields,
     )
     if template is not None:
         instantiate_chart(ledger=ledger, config=config, template=template)

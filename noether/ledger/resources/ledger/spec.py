@@ -1,7 +1,5 @@
 import datetime
 
-from pydantic import UUID4
-
 from noether.extensions.base import ExtensionResource
 from noether.extensions.validator import (
     ExtensionListRenderer,
@@ -9,7 +7,7 @@ from noether.extensions.validator import (
     ExtensionValidator,
 )
 from noether.ledger.models import Ledger
-from noether.resources.base import NoetherResource, SlugStr
+from noether.resources.base import ExternalId, NoetherResource, SlugStr
 
 
 class LedgerCreateSpec(ExtensionValidator, NoetherResource):
@@ -35,7 +33,7 @@ class LedgerUpdateSpec(ExtensionValidator, NoetherResource):
 class LedgerReadSpec(ExtensionListRenderer, NoetherResource):
     __model__ = Ledger
     __extension_resource__ = ExtensionResource.ledger
-    id: UUID4 | None = None
+    id: ExternalId | None = None
     name: str = ""
     slug: str | None = None
     description: str = ""

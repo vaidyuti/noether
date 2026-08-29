@@ -1,8 +1,6 @@
 import datetime
 
-from pydantic import UUID4
-
-from noether.resources.base import NoetherResource
+from noether.resources.base import ExternalId, NoetherResource
 from noether.security.models import LedgerUser
 
 
@@ -26,7 +24,7 @@ class MemberUpdateSpec(NoetherResource):
 
 class MemberReadSpec(NoetherResource):
     __model__ = LedgerUser
-    id: UUID4 | None = None
+    id: ExternalId | None = None
     user: str | None = None
     role: str | None = None
     created_date: datetime.datetime | None = None

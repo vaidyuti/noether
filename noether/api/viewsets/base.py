@@ -1,4 +1,6 @@
+import copy
 import json
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
@@ -18,6 +20,8 @@ from rest_framework.viewsets import GenericViewSet
 from noether.ledger.exceptions import (
     ConservationError,
     DomainValidationError,
+    ExternalIdConflictError,
+    ExternalIdUnavailableError,
     ImmutabilityError,
 )
 from noether.ledger.models_base import slug_or_uuid_filters
@@ -39,6 +43,10 @@ def noether_exception_handler(exc, context):
         return Response(
             {"errors": [{"type": "domain_validation_error", "msg": exc.message}]}, status=400
         )
+    if isinstance(exc, ExternalIdConflictError):
+        return Response({"errors": [{"type": "id_conflict", "msg": exc.message}]}, status=409)
+    if isinstance(exc, ExternalIdUnavailableError):
+        return Response({"errors": [{"type": "id_conflict", "msg": exc.message}]}, status=400)
     if isinstance(exc, ImmutabilityError):
         return Response(
             {"errors": [{"type": "immutable_transaction", "msg": exc.message}]}, status=409
@@ -67,6 +75,29 @@ def noether_exception_handler(exc, context):
     return drf_exception_handler(exc, context)
 
 
+def extract_client_external_id(request_data):
+    """Pull a client-supplied ``id`` out of a write body (ADR-0016).
+
+    Absent, ``None`` and ``""`` all mean "mint one server-side". Anything
+    present but unparseable is a client error: once an id carries idempotency
+    meaning, silently discarding a malformed one turns a botched retry into a
+    duplicate row, which is the exact failure client-supplied ids exist to
+    prevent.
+
+    Module-level on purpose — both the create and the upsert mixin need it, and
+    they are applied independently.
+    """
+    if not isinstance(request_data, dict):
+        return None
+    raw = request_data.get("id")
+    if raw is None or raw == "":
+        return None
+    try:
+        return uuid.UUID(str(raw))
+    except (ValueError, AttributeError, TypeError) as exc:
+        raise RestFrameworkValidationError(f"id must be a UUID, got {raw!r}") from exc
+
+
 class NoetherPagination(LimitOffsetPagination):
     default_limit = 100
 
@@ -83,6 +114,10 @@ class NoetherRetrieveMixin:
 
 
 class NoetherCreateMixin:
+    #: Response fields that never participate in replay comparison: they are
+    #: server-derived, so a genuine replay legitimately differs on them.
+    REPLAY_IGNORED_FIELDS = frozenset({"created_date", "modified_date"})
+
     def clean_create_data(self, request_data):
         return request_data
 
@@ -95,16 +130,90 @@ class NoetherCreateMixin:
         with transaction.atomic():
             instance.save()
 
-    def create(self, request, *args, **kwargs):
-        return Response(self.handle_create(request.data), status=status.HTTP_201_CREATED)
+    def extract_client_external_id(self, request_data):
+        return extract_client_external_id(request_data)
 
-    def handle_create(self, request_data):
+    def find_replay_target(self, external_id):
+        """Return the visible row already holding ``external_id``, if any.
+
+        Scoped to ``get_queryset()``, so a replay can never reach across a
+        ledger boundary — the same rule ``get_object`` follows. An id held by a
+        row outside that scope (another ledger's, or a soft-deleted one) is
+        unavailable rather than a replay: the caller cannot see it, so the
+        server must not confirm what occupies it.
+        """
+        visible = self.get_queryset().filter(external_id=external_id).first()
+        if visible is not None:
+            return visible
+        if self.database_model.objects.filter(external_id=external_id).exists():
+            raise ExternalIdUnavailableError(f"id {external_id} is not available")
+        return None
+
+    def build_replay_comparison(self, rendered):
+        """Reduce a rendered body to the shape replay equality is judged on."""
+        return {
+            key: value for key, value in rendered.items() if key not in self.REPLAY_IGNORED_FIELDS
+        }
+
+    def replay_create(self, existing, request_data):
+        """Answer a create whose id already exists.
+
+        Authorization runs first and unconditionally: a replay is still a
+        create attempt, and must not become a read oracle for a caller who
+        could not have performed the original write.
+        """
+        self.authorize_create(self.pydantic_model.model_validate(request_data))
+        stored = self.get_retrieve_pydantic_model().serialize(existing).to_json()
+        candidate = self.render_replay_candidate(existing, request_data)
+        if self.build_replay_comparison(stored) != self.build_replay_comparison(candidate):
+            raise ExternalIdConflictError(
+                f"id {existing.external_id} already identifies a different object"
+            )
+        return stored
+
+    def render_replay_candidate(self, existing, request_data):
+        """Render what this request *would* have produced, without writing.
+
+        Defaults to overlaying the request body onto the stored row in memory.
+        The row is never saved — the overlay exists purely to be compared.
+
+        ``_replay_target`` is published for the duration so that create-time
+        uniqueness checks in ``validate_data`` can exclude the row being
+        replayed; without it every replay would trip its own uniqueness
+        constraint instead of being recognised.
+        """
+        spec = self.pydantic_model.model_validate(request_data)
+        spec._context = {"is_create": True}
+        self._replay_target = existing
+        try:
+            self.validate_data(spec, None)
+        finally:
+            self._replay_target = None
+        candidate = spec.de_serialize(obj=copy.copy(existing))
+        return self.get_retrieve_pydantic_model().serialize(candidate).to_json()
+
+    def create(self, request, *args, **kwargs):
+        external_id = self.extract_client_external_id(request.data)
+        if external_id is not None:
+            existing = self.find_replay_target(external_id)
+            if existing is not None:
+                return Response(
+                    self.replay_create(existing, request.data), status=status.HTTP_200_OK
+                )
+        return Response(
+            self.handle_create(request.data, external_id=external_id),
+            status=status.HTTP_201_CREATED,
+        )
+
+    def handle_create(self, request_data, external_id=None):
         clean_data = self.clean_create_data(request_data)
         instance = self.pydantic_model.model_validate(clean_data)
         instance._context = {"is_create": True}
         self.validate_data(instance, None)
         self.authorize_create(instance)
         model_instance = instance.de_serialize()
+        if external_id is not None:
+            model_instance.external_id = external_id
         self.perform_create(model_instance)
         return self.get_retrieve_pydantic_model().serialize(model_instance).to_json()
 
@@ -199,18 +308,22 @@ class NoetherUpsertMixin:
         """Return ``(lookup_field, value)`` or ``None`` when this is a create."""
         if self.model_has_slug_field() and "slug" in datapoint:
             return ("slug", datapoint["slug"])
-        if "id" in datapoint:
-            return ("external_id", datapoint["id"])
+        external_id = extract_client_external_id(datapoint)
+        if external_id is not None:
+            return ("external_id", external_id)
         return None
 
     def get_upsert_instance(self, identity):
+        """Fetch the row an identity points at, or ``None`` for a create.
+
+        Identity values are already well-formed by this point: ``resolve_identity``
+        rejects a malformed ``id`` with a 400 rather than letting it fall through
+        to a filter (ADR-0016).
+        """
         if identity is None:
             return None
         field, value = identity
-        try:
-            return self.get_queryset().filter(**{field: value}).first()
-        except (DjangoValidationError, ValueError):
-            return None
+        return self.get_queryset().filter(**{field: value}).first()
 
     def validate_upsert_batch(self, request_data):
         if not isinstance(request_data, dict):
@@ -251,7 +364,10 @@ class NoetherUpsertMixin:
                     try:
                         instance = self.get_upsert_instance(identity)
                         if instance is None:
-                            results.append(self.handle_create(datapoint))
+                            external_id = None
+                            if identity is not None and identity[0] == "external_id":
+                                external_id = identity[1]
+                            results.append(self.handle_create(datapoint, external_id=external_id))
                         else:
                             results.append(self.handle_update(instance, datapoint))
                     except Exception as exc:
@@ -278,6 +394,17 @@ class NoetherBaseViewSet(GenericViewSet):
     database_model = None
     lookup_field = "external_id"
     pagination_class = NoetherPagination
+
+    #: Set only while a replayed create is being rendered for comparison
+    #: (ADR-0016). ``validate_data`` uses it to exclude the row under replay
+    #: from its own uniqueness checks.
+    _replay_target = None
+
+    def exclude_replay_target(self, queryset):
+        """Drop the row currently under replay from a uniqueness queryset."""
+        if self._replay_target is None:
+            return queryset
+        return queryset.exclude(pk=self._replay_target.pk)
 
     def get_exception_handler(self):
         return noether_exception_handler
