@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 .coverage
+coverage.xml
 htmlcov/
 staticfiles/
 db.sqlite3
