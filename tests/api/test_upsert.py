@@ -11,7 +11,7 @@ from noether.api.viewsets.base import NoetherUpsertMixin, extract_client_externa
 from noether.ledger.models import Account, Unit
 from tests.api.base import NoetherAPITestCase
 
-EXAMPLE_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
+EXAMPLE_ID = uuid.UUID("01920000-0000-7000-8000-000000000002")
 
 
 class _FakeMeta:
@@ -158,7 +158,7 @@ class UnitUpsertAPITests(NoetherAPITestCase):
         body = {
             "datapoints": [
                 {
-                    "id": "11111111-1111-1111-1111-111111111111",
+                    "id": str(EXAMPLE_ID),
                     "symbol": "GHOST",
                     "name": "Ghost",
                 }
@@ -167,7 +167,7 @@ class UnitUpsertAPITests(NoetherAPITestCase):
         response = self.post(body)
         self.assertEqual(response.status_code, 200, response.content)
         created = Unit.objects.get(ledger=self.ledger, symbol="GHOST")
-        self.assertEqual(str(created.external_id), "11111111-1111-1111-1111-111111111111")
+        self.assertEqual(str(created.external_id), str(EXAMPLE_ID))
 
     def test_malformed_identifier_is_rejected(self):
         """Supersedes ADR-0015: a malformed id is a client error, not a create."""

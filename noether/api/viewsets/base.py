@@ -79,10 +79,10 @@ def extract_client_external_id(request_data):
     """Pull a client-supplied ``id`` out of a write body (ADR-0016).
 
     Absent, ``None`` and ``""`` all mean "mint one server-side". Anything
-    present but unparseable is a client error: once an id carries idempotency
-    meaning, silently discarding a malformed one turns a botched retry into a
-    duplicate row, which is the exact failure client-supplied ids exist to
-    prevent.
+    present but unparseable, or parseable but not a UUIDv7, is a client error:
+    once an id carries idempotency meaning, silently discarding a bad one turns
+    a botched retry into a duplicate row, which is the exact failure
+    client-supplied ids exist to prevent.
 
     Module-level on purpose — both the create and the upsert mixin need it, and
     they are applied independently.
@@ -93,9 +93,12 @@ def extract_client_external_id(request_data):
     if raw is None or raw == "":
         return None
     try:
-        return uuid.UUID(str(raw))
+        parsed = uuid.UUID(str(raw))
     except (ValueError, AttributeError, TypeError) as exc:
         raise RestFrameworkValidationError(f"id must be a UUID, got {raw!r}") from exc
+    if parsed.version != 7:
+        raise RestFrameworkValidationError(f"id must be a UUIDv7, got version {parsed.version}")
+    return parsed
 
 
 class NoetherPagination(LimitOffsetPagination):

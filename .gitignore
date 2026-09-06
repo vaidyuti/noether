@@ -9,3 +9,5 @@ db.sqlite3
 
 # Graphify's outputs
 graphify-out/
+
+.DS_Store

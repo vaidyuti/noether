@@ -134,7 +134,7 @@ Each datapoint is the same object body the collection's `POST` (create) or
 | otherwise, datapoint has `id` | look up by `id` (`external_id`) |
 | neither | create |
 | identifier present, no row matches | **create, keeping the supplied `id`** — never 404 |
-| `id` present but not a valid UUID | **400** |
+| `id` present but not a valid UUIDv7 | **400** |
 
 The last two rows supersede ADR-0015 (see [ADR-0016](../adr/0016-client-supplied-uuidv7-external-ids.md)):
 an unmatched `id` is retained rather than replaced with a fresh one, so re-running
@@ -227,7 +227,8 @@ boolean values (e.g. `archived=maybe`) are ignored per django-filter's BooleanFi
 ## Client-supplied IDs (ADR-0016)
 
 `external_id` is a **UUIDv7** — time-ordered, so inserts stay at the tail of the
-index as tables grow. Existing v4 ids remain valid; nothing inspects the version.
+index as tables grow. The id space is v7-only: **any other UUID version is
+rejected with a 400** on write. There is no v4 fallback.
 
 Any create endpoint accepts an optional `id` in the body. Supply one and it
 becomes the row's `external_id`; omit it and the server mints one. Because the
@@ -241,6 +242,7 @@ key** — reuse the same `id` when retrying an ambiguous failure:
 | `id` known, request renders to the same row | **200** with the stored row (retry is a no-op) |
 | `id` known, request renders to something else | **409** `id_conflict` |
 | `id` held by a row the caller cannot see | **409** `id_unavailable` |
+| `id` is a valid UUID but not version 7 | **400** |
 | `id` is not a valid UUID | **400** |
 
 Comparison is on the rendered resource, so field order, omitted defaults, and

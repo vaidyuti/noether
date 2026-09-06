@@ -30,11 +30,24 @@ a duplicated transaction is a real balance error.
 
 ## Decision
 
-**1. `external_id` defaults to UUIDv7.** `noether.ledger.models_base.generate_external_id`
+**1. `external_id` is a UUIDv7, and only a UUIDv7.** `noether.ledger.models_base.generate_external_id`
 wraps `uuid_utils.compat.uuid7` and is the field default. UUIDv7 (RFC 9562) is
 a 48-bit millisecond timestamp followed by randomness, so ids are time-ordered
 and inserts land at the tail of the index. The column type does not change —
 v7 is still a 128-bit UUID.
+
+The id space is **v7-only**: any other UUID version is rejected on write with a
+400. There is no v4 fallback and no mixed-version window. The system has never
+been deployed, so there are no historical ids to accommodate, and admitting even
+a few v4s would forfeit the property the change exists for — one non-v7 id in
+the column is enough to break the assumption that ids sort by creation time,
+and to scatter writes across the index.
+
+Enforcement sits in two places: `ExternalId` (the pydantic type every spec uses
+for identifier fields, covering FK references like `unit` and `account`) and
+`extract_client_external_id` (the create/upsert body path). URL path segments
+are deliberately *not* version-checked — a non-v7 id in a path simply matches no
+row and 404s, which is the correct answer and avoids leaking existence.
 
 We took the dependency on `uuid-utils` because CPython only gained
 `uuid.uuid7()` in 3.14 and this project targets 3.13. `uuid_utils.compat.uuid7()`
@@ -77,9 +90,13 @@ absent-vs-default fields, and equal-but-differently-written decimals
 
 ## Consequences
 
-- Existing UUIDv4 rows keep their ids. v4 and v7 coexist in the column
-  indefinitely; nothing reads a version bit, and rewriting historical ids would
-  destroy identity. Locality improves for new rows only.
+- Existing UUIDv4 rows: there are none. The system is not deployed, and
+  migrations were squashed as part of this change, so the column starts v7-only
+  and stays that way. Had there been history, this decision would have needed a
+  mixed-version window instead.
+- Clients must generate v7 specifically. Any client library predating RFC 9562
+  needs updating; a v4 will be rejected with a 400 rather than silently
+  accepted.
 - Ids are no longer opaque: a UUIDv7 leaks its creation timestamp to whoever
   holds it. For ledger objects this is not sensitive — creation time is already
   a readable field. Anything genuinely secret (tokens, invite codes) must not

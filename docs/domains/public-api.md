@@ -17,7 +17,7 @@ core-internal and may change without notice.
 | `noether.ledger.models_base` | `SluggedModel`, `validate_slug`, `SLUG_PATTERN`, `SLUG_MAX_LENGTH`, `slug_or_uuid_filters` | Give a plug model a scope-unique slug (ADR-0014) |
 | `noether.ledger.services.posting` | `create_transaction(...)`, `post_transaction(...)`, `reverse_transaction(...)` | THE only write path to the ledger |
 | `noether.ledger.services.balances` | `get_balance(account, as_of=None)` (normalized), `get_raw_balance(account, as_of=None)`, `get_market_value(account, value_in, as_of=None)` | Read helpers |
-| `noether.resources.base` | `NoetherResource`, `SlugStr`, `ExternalId` | pydantic spec base for plug APIs; `SlugStr` validates slug fields; `ExternalId` types UUID identifier fields |
+| `noether.resources.base` | `NoetherResource`, `SlugStr`, `ExternalId`, `validate_uuid7` | pydantic spec base for plug APIs; `SlugStr` validates slug fields; `ExternalId` types UUID identifier fields (v7-only) |
 | `noether.api.viewsets.base` | `NoetherBaseViewSet`, `NoetherModelViewSet`, `NoetherModelReadOnlyViewSet`, `LedgerScopedMixin`, `NoetherUpsertMixin` | Plug viewsets (`NoetherUpsertMixin` adds `POST /<collection>/upsert/`, ADR-0015) |
 | `noether.tagging.models` | `TaggableMixin` | Give a plug model an ArrayField tag column (ADR-0013) |
 | `noether.tagging.base` | `BaseTagManager`, `LedgerTagManager` | Apply/remove/render tags with scope, exclusivity and authz enforced |
@@ -93,10 +93,10 @@ class MeterSpec(NoetherResource):
     ledger: ExternalId
 ```
 
-`UUID4` asserts the version bit, so it rejects the UUIDv7 identifiers the core
-now generates. `ExternalId` accepts any UUID version, which is required because
-v4 rows created before ADR-0016 and v7 rows created after it coexist in the same
-column permanently.
+`UUID4` asserts the wrong version bit, so it rejects the UUIDv7 identifiers the
+core generates. `ExternalId` requires version 7 and rejects anything else with a
+400 — the id space is v7-only (ADR-0016), so plugs must not widen it by typing a
+field as a bare `uuid.UUID`.
 
 Plug viewsets deriving from `NoetherCreateMixin` inherit client-supplied IDs and
 their replay/conflict semantics for free — no per-plug work, provided the spec's

@@ -105,7 +105,7 @@ class ApiEdgeTests(NoetherAPITestCase):
             {
                 "name": "X",
                 "account_type": "generic",
-                "unit": "11111111-1111-4111-8111-111111111111",
+                "unit": "01920000-0000-7000-8000-000000000001",
             },
             format="json",
         )
@@ -118,7 +118,7 @@ class ApiEdgeTests(NoetherAPITestCase):
                 "name": "X",
                 "account_type": "generic",
                 "unit": str(self.unit.external_id),
-                "parent": "11111111-1111-4111-8111-111111111111",
+                "parent": "01920000-0000-7000-8000-000000000001",
             },
             format="json",
         )
@@ -147,7 +147,7 @@ class ApiEdgeTests(NoetherAPITestCase):
                 "occurred_at": OCCURRED,
                 "entries": [
                     {
-                        "account": "11111111-1111-4111-8111-111111111111",
+                        "account": "01920000-0000-7000-8000-000000000001",
                         "direction": "debit",
                         "amount": "5.00",
                     },

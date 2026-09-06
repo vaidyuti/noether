@@ -61,12 +61,20 @@ class ClientSuppliedIdCreateTests(NoetherAPITestCase):
         minted = Unit.objects.get(ledger=self.ledger, symbol="AUTO")
         self.assertEqual(minted.external_id.version, 7)
 
-    def test_v4_id_is_accepted(self):
-        """Ids are opaque: the server does not police the client's version."""
-        external_id = uuid.uuid4()
-        response = self.client.post(self.unit_url(), self.unit_body(external_id), format="json")
-        self.assertEqual(response.status_code, 201, response.content)
-        self.assertEqual(response.json()["id"], str(external_id))
+    def test_v4_id_is_rejected(self):
+        """Only UUIDv7 is a valid identifier: no mixed-version id space."""
+        response = self.client.post(self.unit_url(), self.unit_body(uuid.uuid4()), format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("must be a UUIDv7", str(response.content))
+        self.assertFalse(Unit.objects.filter(ledger=self.ledger, symbol="CSU").exists())
+
+    def test_nil_uuid_is_rejected(self):
+        """The all-zero UUID parses but has no version; it is not a v7."""
+        response = self.client.post(
+            self.unit_url(), self.unit_body("00000000-0000-0000-0000-000000000000"), format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("must be a UUIDv7", str(response.content))
 
     def test_malformed_id_is_rejected(self):
         response = self.client.post(self.unit_url(), self.unit_body("not-a-uuid"), format="json")
@@ -80,7 +88,7 @@ class ClientSuppliedIdCreateTests(NoetherAPITestCase):
         self.assertEqual(Unit.objects.filter(ledger=self.ledger, symbol="CSU").count(), 1)
 
     def test_null_id_is_treated_as_absent(self):
-        body = self.unit_body(uuid.uuid4())
+        body = self.unit_body(generate_external_id())
         body["id"] = None
         response = self.client.post(self.unit_url(), body, format="json")
         self.assertEqual(response.status_code, 201, response.content)
