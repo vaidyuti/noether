@@ -49,6 +49,7 @@ ignore = ["SIM105"]
 
 [tool.coverage.run]
 branch = true
+relative_files = true
 source = ["noether"]
 omit = [
     "*/migrations/*",

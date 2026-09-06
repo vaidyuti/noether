@@ -1,5 +1,7 @@
 # noether
 
+[![codecov](https://codecov.io/gh/vaidyuti/noether/graph/badge.svg)](https://codecov.io/gh/vaidyuti/noether)
+
 Domain-agnostic double-entry **conservation ledger**. Track anything that must
 balance — money, energy, water — with one kernel. Domain meaning lives entirely
 in plugs (`noether-finance`, `noether-energy`).
