@@ -52,9 +52,18 @@ def create_transaction(
     entries: list[EntryInput],
     metadata: dict | None = None,
     created_by,
+    external_id=None,
 ) -> Transaction:
-    """Create a DRAFT transaction with its entries. Kernel-validates cheaply."""
+    """Create a DRAFT transaction with its entries. Kernel-validates cheaply.
+
+    ``external_id`` lets the caller supply the transaction's identifier
+    (ADR-0016), which is what makes an ambiguous retry idempotent rather than
+    double-posting. Omitted, one is minted.
+    """
     with db_transaction.atomic():
+        txn_fields = {}
+        if external_id is not None:
+            txn_fields["external_id"] = external_id
         txn = Transaction.objects.create(
             ledger=ledger,
             description=description,
@@ -62,6 +71,7 @@ def create_transaction(
             metadata=metadata or {},
             created_by=created_by,
             updated_by=created_by,
+            **txn_fields,
         )
         for entry_input in entries:
             account = entry_input.account

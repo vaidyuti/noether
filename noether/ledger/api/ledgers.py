@@ -28,7 +28,7 @@ class LedgerViewSet(NoetherModelViewSet):
             .order_by("-id")
         )
 
-    def handle_create(self, request_data):
+    def handle_create(self, request_data, external_id=None):
         clean_data = self.clean_create_data(request_data)
         instance = self.pydantic_model.model_validate(clean_data)
         instance._context = {"is_create": True}
@@ -41,6 +41,7 @@ class LedgerViewSet(NoetherModelViewSet):
                 chart_template=instance.chart_template,
                 description=instance.description,
                 slug=instance.slug,
+                external_id=external_id,
             )
         except DomainConfigError as exc:
             raise ValidationError(str(exc)) from exc

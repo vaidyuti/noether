@@ -1,10 +1,10 @@
 import datetime
 from decimal import Decimal
 
-from pydantic import UUID4, field_validator
+from pydantic import field_validator
 
 from noether.ledger.models import UnitPrice
-from noether.resources.base import NoetherResource
+from noether.resources.base import ExternalId, NoetherResource
 
 
 class UnitPriceSpec(NoetherResource):
@@ -30,7 +30,7 @@ class UnitPriceSpec(NoetherResource):
 
 class UnitPriceReadSpec(NoetherResource):
     __model__ = UnitPrice
-    id: UUID4 | None = None
+    id: ExternalId | None = None
     unit: str | None = None
     quote_unit: str | None = None
     price: str | None = None

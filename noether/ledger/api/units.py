@@ -18,8 +18,8 @@ class UnitViewSet(LedgerScopedMixin, NoetherUpsertMixin, NoetherModelViewSet):
 
     def validate_data(self, instance, model_obj=None):
         if model_obj is None and (
-            Unit.objects.filter(
-                ledger=self.get_ledger(), symbol=instance.symbol, deleted=False
+            self.exclude_replay_target(
+                Unit.objects.filter(ledger=self.get_ledger(), symbol=instance.symbol, deleted=False)
             ).exists()
         ):
             raise ValidationError(f"unit symbol {instance.symbol!r} already exists")

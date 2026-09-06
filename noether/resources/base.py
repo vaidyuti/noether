@@ -1,7 +1,8 @@
+import uuid
 from typing import Annotated
 
 from django.db import models
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field
 
 from noether.ledger.models_base import SLUG_MAX_LENGTH, SLUG_PATTERN
 
@@ -9,8 +10,25 @@ from noether.ledger.models_base import SLUG_MAX_LENGTH, SLUG_PATTERN
 SlugStr = Annotated[str, Field(pattern=SLUG_PATTERN, max_length=SLUG_MAX_LENGTH)]
 
 
+def validate_uuid7(value: uuid.UUID) -> uuid.UUID:
+    """Reject any UUID that is not version 7 (ADR-0016).
+
+    The id space is v7-only. Accepting other versions would reintroduce the
+    scattered-index writes v7 exists to avoid, and would leave the ordering
+    guarantee unreliable — one v4 in the column is enough to break the
+    assumption that ids sort by creation time.
+    """
+    if value.version != 7:
+        raise ValueError(f"must be a UUIDv7, got version {value.version}")
+    return value
+
+
+#: pydantic field type for an ``external_id``: a UUIDv7 and nothing else.
+ExternalId = Annotated[uuid.UUID, AfterValidator(validate_uuid7)]
+
+
 class NoetherResource(BaseModel):
-    """pydantic v2 spec base for API resources, minus questionnaire baggage."""
+    """pydantic v2 spec base for API resources"""
 
     __model__ = None
     __exclude__: list[str] = []

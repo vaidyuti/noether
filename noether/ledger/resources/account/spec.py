@@ -1,7 +1,5 @@
 import datetime
 
-from pydantic import UUID4
-
 from noether.extensions.base import ExtensionResource
 from noether.extensions.validator import (
     ExtensionListRenderer,
@@ -9,7 +7,7 @@ from noether.extensions.validator import (
     ExtensionValidator,
 )
 from noether.ledger.models import Account
-from noether.resources.base import NoetherResource, SlugStr
+from noether.resources.base import ExternalId, NoetherResource, SlugStr
 
 
 class AccountSpec(ExtensionValidator, NoetherResource):
@@ -18,8 +16,8 @@ class AccountSpec(ExtensionValidator, NoetherResource):
     name: str
     slug: SlugStr | None = None
     account_type: str
-    unit: UUID4
-    parent: UUID4 | None = None
+    unit: ExternalId
+    parent: ExternalId | None = None
     is_placeholder: bool = False
     metadata: dict = {}
 
@@ -39,12 +37,12 @@ class AccountUpdateSpec(ExtensionValidator, NoetherResource):
 class AccountReadSpec(ExtensionListRenderer, NoetherResource):
     __model__ = Account
     __extension_resource__ = ExtensionResource.account
-    id: UUID4 | None = None
+    id: ExternalId | None = None
     name: str = ""
     slug: str | None = None
     account_type: str = ""
     unit: str | None = None
-    parent: UUID4 | None = None
+    parent: ExternalId | None = None
     is_placeholder: bool = False
     archived: bool = False
     metadata: dict = {}

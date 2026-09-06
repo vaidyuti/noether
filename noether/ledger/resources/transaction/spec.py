@@ -1,7 +1,7 @@
 import datetime
 from decimal import Decimal
 
-from pydantic import UUID4, BaseModel, field_validator
+from pydantic import BaseModel, field_validator
 
 from noether.extensions.base import ExtensionResource
 from noether.extensions.validator import (
@@ -11,11 +11,11 @@ from noether.extensions.validator import (
 )
 from noether.ledger.models import Transaction
 from noether.ledger.resources.transaction.constants import EntryDirection
-from noether.resources.base import NoetherResource
+from noether.resources.base import ExternalId, NoetherResource
 
 
 class EntrySpec(BaseModel):
-    account: UUID4
+    account: ExternalId
     direction: EntryDirection
     amount: Decimal
     metadata: dict = {}
@@ -53,13 +53,13 @@ class ReverseSpec(BaseModel):
 class TransactionReadSpec(ExtensionListRenderer, NoetherResource):
     __model__ = Transaction
     __extension_resource__ = ExtensionResource.transaction
-    id: UUID4 | None = None
+    id: ExternalId | None = None
     status: str = ""
     description: str = ""
     occurred_at: datetime.datetime | None = None
     posted_at: datetime.datetime | None = None
-    reverses: UUID4 | None = None
-    reversed_by: UUID4 | None = None
+    reverses: ExternalId | None = None
+    reversed_by: ExternalId | None = None
     metadata: dict = {}
     entries: list[dict] = []
     tags: list[dict] = []

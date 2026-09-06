@@ -1,6 +1,5 @@
 """Tagging: model hierarchy caches, tag manager, filter, REST surface (ADR-0013)."""
 
-import uuid
 from datetime import timedelta
 
 from django.test import TestCase
@@ -8,6 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from noether.ledger.models import TagConfig, Transaction
+from noether.ledger.models_base import generate_external_id
 from noether.ledger.resources.tag.constants import TagResource
 from noether.ledger.tests.factories import LedgerFactory, TransactionFactory, UserFactory
 from noether.security.authorization.base import PermissionDeniedError
@@ -142,7 +142,7 @@ class BaseTagManagerProtocolTests(TestCase):
 
     def test_abstract_hooks_raise(self):
         with self.assertRaises(NotImplementedError):
-            self.manager.get_tag_config_object(uuid.uuid4())
+            self.manager.get_tag_config_object(generate_external_id())
         with self.assertRaises(NotImplementedError):
             self.manager.set_tag("transaction", None, None, None)
         with self.assertRaises(NotImplementedError):
@@ -201,7 +201,9 @@ class LedgerTagManagerTests(TestCase):
 
     def test_unknown_tag_rejected(self):
         with self.assertRaisesMessage(ValidationError, "unknown tag"):
-            self.manager.set_tag(TagResource.transaction, self.txn, uuid.uuid4(), self.owner)
+            self.manager.set_tag(
+                TagResource.transaction, self.txn, generate_external_id(), self.owner
+            )
 
     def test_cross_ledger_tag_rejected(self):
         foreign = make_tag(self.other_ledger, "foreign")
@@ -361,7 +363,7 @@ class TagFilterTests(TestCase):
         self.assertEqual(list(result), [self.both_txn])
 
     def test_unknown_tag_id_matches_nothing(self):
-        self.assertEqual(TagFilter().filter(self.qs, str(uuid.uuid4())).count(), 0)
+        self.assertEqual(TagFilter().filter(self.qs, str(generate_external_id())).count(), 0)
 
     def test_malformed_id_matches_nothing(self):
         self.assertEqual(TagFilter().filter(self.qs, "not-a-uuid").count(), 0)
@@ -424,7 +426,7 @@ class TagConfigAPITests(NoetherAPITestCase):
         self.assertEqual(self.client.get(self.url()).json()["count"], 1)
 
     def test_create_with_unknown_parent_rejected(self):
-        response = self.create_tag(display="orphan", parent=str(uuid.uuid4()))
+        response = self.create_tag(display="orphan", parent=str(generate_external_id()))
         self.assertEqual(response.status_code, 400)
         self.assertIn("unknown parent tag", response.json()["errors"][0]["msg"])
 

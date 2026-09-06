@@ -1,13 +1,17 @@
 """Bulk upsert mixin: identity resolution, batching, rollback, authorization."""
 
+import uuid
 from unittest import mock
 
 from django.core.exceptions import FieldDoesNotExist
 from django.test import override_settings
+from rest_framework.exceptions import ValidationError as RestFrameworkValidationError
 
-from noether.api.viewsets.base import NoetherUpsertMixin
+from noether.api.viewsets.base import NoetherUpsertMixin, extract_client_external_id
 from noether.ledger.models import Account, Unit
 from tests.api.base import NoetherAPITestCase
+
+EXAMPLE_ID = uuid.UUID("01920000-0000-7000-8000-000000000002")
 
 
 class _FakeMeta:
@@ -46,7 +50,10 @@ class IdentityResolutionUnitTests(NoetherAPITestCase):
     def test_identity_falls_back_to_external_id(self):
         view = NoetherUpsertMixin()
         view.database_model = Unit
-        self.assertEqual(view.resolve_identity({"slug": "cash", "id": "x"}), ("external_id", "x"))
+        self.assertEqual(
+            view.resolve_identity({"slug": "cash", "id": str(EXAMPLE_ID)}),
+            ("external_id", EXAMPLE_ID),
+        )
 
     def test_identity_none_when_no_identifier(self):
         view = NoetherUpsertMixin()
@@ -61,7 +68,19 @@ class IdentityResolutionUnitTests(NoetherAPITestCase):
     def test_identity_slug_model_falls_back_to_id(self):
         view = NoetherUpsertMixin()
         view.database_model = _FakeModel({"slug"})
-        self.assertEqual(view.resolve_identity({"id": "x"}), ("external_id", "x"))
+        self.assertEqual(
+            view.resolve_identity({"id": str(EXAMPLE_ID)}), ("external_id", EXAMPLE_ID)
+        )
+
+    def test_identity_rejects_a_malformed_id(self):
+        view = NoetherUpsertMixin()
+        view.database_model = Unit
+        with self.assertRaises(RestFrameworkValidationError):
+            view.resolve_identity({"id": "not-a-uuid"})
+
+    def test_extract_client_external_id_ignores_non_dict_bodies(self):
+        """Body shape is validated elsewhere; the extractor just declines."""
+        self.assertIsNone(extract_client_external_id(["not", "a", "dict"]))
 
 
 class UnitUpsertAPITests(NoetherAPITestCase):
@@ -129,11 +148,17 @@ class UnitUpsertAPITests(NoetherAPITestCase):
         self.unit.refresh_from_db()
         self.assertEqual(self.unit.name, "Renamed")
 
-    def test_unmatched_identifier_creates_instead_of_404(self):
+    def test_unmatched_identifier_creates_with_the_supplied_id(self):
+        """Supersedes ADR-0015's mint-a-fresh-id behaviour: the client's id wins.
+
+        The whole point of a client-chosen id is that re-running the import
+        addresses the same row; minting a different one would make the second
+        run a duplicate rather than a no-op (ADR-0016).
+        """
         body = {
             "datapoints": [
                 {
-                    "id": "11111111-1111-1111-1111-111111111111",
+                    "id": str(EXAMPLE_ID),
                     "symbol": "GHOST",
                     "name": "Ghost",
                 }
@@ -142,15 +167,17 @@ class UnitUpsertAPITests(NoetherAPITestCase):
         response = self.post(body)
         self.assertEqual(response.status_code, 200, response.content)
         created = Unit.objects.get(ledger=self.ledger, symbol="GHOST")
-        self.assertNotEqual(str(created.external_id), "11111111-1111-1111-1111-111111111111")
+        self.assertEqual(str(created.external_id), str(EXAMPLE_ID))
 
-    def test_malformed_identifier_is_treated_as_create(self):
+    def test_malformed_identifier_is_rejected(self):
+        """Supersedes ADR-0015: a malformed id is a client error, not a create."""
         body = {
             "datapoints": [{"id": "not-a-uuid", "symbol": "MAL", "name": "Mal", "precision": 2}]
         }
         response = self.post(body)
-        self.assertEqual(response.status_code, 200, response.content)
-        self.assertTrue(Unit.objects.filter(ledger=self.ledger, symbol="MAL").exists())
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("must be a UUID", str(response.content))
+        self.assertFalse(Unit.objects.filter(ledger=self.ledger, symbol="MAL").exists())
 
     def test_mixed_create_and_update_batch(self):
         body = {

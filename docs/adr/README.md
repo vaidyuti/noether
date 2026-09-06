@@ -19,4 +19,5 @@ change a decision). Template: `template.md`.
 | [0012](0012-model-extensions.md) | JSON-Schema-validated `extensions` on Ledger/Account/Transaction; env- and plug-declared, strict on unknown keys | Accepted |
 | [0013](0013-tags.md) | Ledger-scoped tags: denormalized ArrayField storage, configurable exclusivity, allowed on posted transactions | Accepted |
 | [0014](0014-scoped-slugs.md) | Optional scoped-unique slugs on Ledger/Account; slug-or-UUID addressing | Accepted |
-| [0015](0015-bulk-upsert.md) | Bulk upsert: slug-or-id identity, all-or-nothing batches, transactions excluded | Accepted |
+| [0015](0015-bulk-upsert.md) | Bulk upsert: slug-or-id identity, all-or-nothing batches, transactions excluded | Accepted (identity rules partly superseded by 0016) |
+| [0016](0016-client-supplied-uuidv7-external-ids.md) | UUIDv7 `external_id`; clients may supply it as an idempotency key | Accepted |

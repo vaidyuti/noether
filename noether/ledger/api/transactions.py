@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django_filters import rest_framework as filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -6,7 +8,7 @@ from rest_framework.response import Response
 from noether.api.viewsets.base import NoetherModelViewSet
 from noether.api.viewsets.tags import TagMixin
 from noether.ledger.api.base import LedgerScopedMixin
-from noether.ledger.exceptions import ImmutabilityError
+from noether.ledger.exceptions import ExternalIdConflictError, ImmutabilityError
 from noether.ledger.models import Account, Transaction
 from noether.ledger.resources.tag.constants import TagResource
 from noether.ledger.resources.transaction.constants import TransactionStatus
@@ -81,11 +83,63 @@ class TransactionViewSet(TagMixin, LedgerScopedMixin, NoetherModelViewSet):
             )
         return inputs
 
+    def _replay_fingerprint(self, description, occurred_at, entries, metadata):
+        """Canonical form of a transaction create, for replay comparison.
+
+        Entry *order* is significant: entries are an ordered list in both the
+        request and the stored transaction, and a client that reorders them has
+        described a different transaction, not replayed the same one.
+        """
+        return {
+            "description": description,
+            "occurred_at": occurred_at.isoformat() if occurred_at else None,
+            "metadata": metadata or {},
+            "entries": [
+                {
+                    "account": str(account),
+                    "direction": str(direction),
+                    "amount": str(Decimal(amount).normalize()),
+                    "metadata": entry_metadata or {},
+                }
+                for account, direction, amount, entry_metadata in entries
+            ],
+        }
+
+    def _spec_fingerprint(self, spec):
+        return self._replay_fingerprint(
+            spec.description,
+            spec.occurred_at,
+            [(e.account, e.direction, e.amount, e.metadata) for e in spec.entries],
+            spec.metadata,
+        )
+
+    def _stored_fingerprint(self, txn):
+        return self._replay_fingerprint(
+            txn.description,
+            txn.occurred_at,
+            [
+                (entry.account.external_id, entry.direction, entry.amount, entry.metadata)
+                for entry in txn.entries.select_related("account").order_by("id")
+            ],
+            txn.metadata,
+        )
+
     def create(self, request, *args, **kwargs):
         self.check_ledger_permission(TransactionPermissions.transaction__create.name)
+        external_id = self.extract_client_external_id(request.data)
         spec = TransactionCreateSpec.model_validate(request.data)
         if spec.post:
             self.check_ledger_permission(TransactionPermissions.transaction__post.name)
+        if external_id is not None:
+            existing = self.find_replay_target(external_id)
+            if existing is not None:
+                # Authorization already ran above, so a replay is no cheaper
+                # than the original write and leaks nothing extra.
+                if self._stored_fingerprint(existing) != self._spec_fingerprint(spec):
+                    raise ExternalIdConflictError(
+                        f"id {external_id} already identifies a different transaction"
+                    )
+                return Response(TransactionReadSpec.serialize(existing).to_json())
         txn = create_transaction(
             ledger=self.get_ledger(),
             description=spec.description,
@@ -93,6 +147,7 @@ class TransactionViewSet(TagMixin, LedgerScopedMixin, NoetherModelViewSet):
             entries=self._resolve_entries(spec),
             metadata=spec.metadata,
             created_by=request.user,
+            external_id=external_id,
         )
         if spec.extensions:
             txn.extensions = spec.extensions

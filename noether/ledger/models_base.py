@@ -3,6 +3,22 @@ import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from uuid_utils.compat import uuid7
+
+
+def generate_external_id() -> uuid.UUID:
+    """Mint a UUIDv7 (RFC 9562) for use as an ``external_id``.
+
+    v7 leads with a 48-bit millisecond timestamp, so freshly minted ids sort
+    after older ones. The unique index on ``external_id`` therefore takes
+    near-append-only inserts instead of the scattered writes a fully random v4
+    produces — the property that matters as ledger tables grow (ADR-0016).
+
+    Returns a stdlib :class:`uuid.UUID`, so Django's ``UUIDField`` and every
+    existing consumer are unaffected.
+    """
+    return uuid7()
+
 
 #: Maximum stored length of a slug. 100 is long enough for deep human-readable
 #: paths ("operating-expenses-utilities-electricity") and short enough to stay
@@ -85,7 +101,7 @@ class SluggedModel(models.Model):
 
 
 class NoetherBaseModel(models.Model):
-    external_id = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+    external_id = models.UUIDField(default=generate_external_id, unique=True, db_index=True)
     created_date = models.DateTimeField(auto_now_add=True, db_index=True)
     modified_date = models.DateTimeField(auto_now=True)
     deleted = models.BooleanField(default=False, db_index=True)

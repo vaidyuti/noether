@@ -133,7 +133,13 @@ Each datapoint is the same object body the collection's `POST` (create) or
 | target model has a `slug` field and datapoint has `slug` | look up by `slug` |
 | otherwise, datapoint has `id` | look up by `id` (`external_id`) |
 | neither | create |
-| identifier present, no row matches (incl. malformed UUID) | **create** — never 404 |
+| identifier present, no row matches | **create, keeping the supplied `id`** — never 404 |
+| `id` present but not a valid UUIDv7 | **400** |
+
+The last two rows supersede ADR-0015 (see [ADR-0016](../adr/0016-client-supplied-uuidv7-external-ids.md)):
+an unmatched `id` is retained rather than replaced with a fresh one, so re-running
+an import converges; a malformed `id` is rejected rather than silently treated as
+a create, because discarding an idempotency key turns a retry into a duplicate.
 
 The slug field is feature-detected per request, so models that gain a `slug`
 later automatically switch to slug identity.
@@ -213,3 +219,36 @@ boolean values (e.g. `archived=maybe`) are ignored per django-filter's BooleanFi
   (`{"type": "conservation_error", "msg": "unit INR: debits 500.00 != credits 400.00"}`).
 - Re-posting, re-reversing: **409**.
 - Domain validator rejection: **400** (`{"type": "domain_validation_error"}`).
+- Create replaying a known `id` with a conflicting body: **409**
+  (`{"type": "id_conflict"}`).
+- Create using an `id` already held by a row outside the caller's scope: **409**
+  (`{"type": "id_unavailable"}`).
+
+## Client-supplied IDs (ADR-0016)
+
+`external_id` is a **UUIDv7** — time-ordered, so inserts stay at the tail of the
+index as tables grow. The id space is v7-only: **any other UUID version is
+rejected with a 400** on write. There is no v4 fallback.
+
+Any create endpoint accepts an optional `id` in the body. Supply one and it
+becomes the row's `external_id`; omit it and the server mints one. Because the
+identifier is chosen before the request is sent, **it doubles as the idempotency
+key** — reuse the same `id` when retrying an ambiguous failure:
+
+| Condition | Result |
+| --- | --- |
+| `id` absent, `null`, or `""` | 201, server mints a UUIDv7 |
+| `id` unused | 201, row created with that `id` |
+| `id` known, request renders to the same row | **200** with the stored row (retry is a no-op) |
+| `id` known, request renders to something else | **409** `id_conflict` |
+| `id` held by a row the caller cannot see | **409** `id_unavailable` |
+| `id` is a valid UUID but not version 7 | **400** |
+| `id` is not a valid UUID | **400** |
+
+Comparison is on the rendered resource, so field order, omitted defaults, and
+equal-but-differently-written decimals (`100.00` vs `100.0000000000`) do not
+cause spurious conflicts.
+
+Clients should therefore treat any **2xx** as success on create, not `201`
+specifically. `id` remains rejected on update — corrections go through the
+documented lifecycle, not by rewriting identity.
